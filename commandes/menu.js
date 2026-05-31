@@ -1,88 +1,98 @@
+"use strict";
+
 const { zokou } = require("../framework/zokou");
-const { commands } = require("../framework/zokou"); // Inavuta amri zote zilizosajiliwa
-const os = require("os");
 const conf = require("../set");
+const moment = require("moment-timezone");
 
-// --- CONFIGURATION ---
-const channelLink = "https://whatsapp.com/channel/0029Vb9kKuVCMY0F5rmX2j1u";
-
-/**
- * Modern Uptime Formatter
- */
-function runtime(seconds) {
-    seconds = Number(seconds);
-    const d = Math.floor(seconds / (3600 * 24));
-    const h = Math.floor((seconds % (3600 * 24)) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return `${d}d ${h}h ${m}m ${s}s`;
-}
-
-// ---------------- COMMAND: AUTO-GENERATE MENU ----------------
 zokou({
-    nomCom: "menu",
-    aliases: ["help", "panel", "h"],
+    nomCom: "list",
+    aliases: ["help", "list"],
     categorie: "General",
-    reaction: "⚔️"
-}, async (dest, zk, info) => {
-    const { ms, mybotpic, nomAuteurMessage } = info;
+    reaction: "👑"
+}, async (dest, zk, commandeOptions) => {
+    const { ms, repondre, prefixe, nomAuteurMessage } = commandeOptions;
+    const { cm } = require(__dirname + "/../framework/zokou"); 
+    const channelJid = "120363406146813524@newsletter";
+    const audioUrl = "https://files.catbox.moe/lqx6sp.mp3"; 
 
     try {
-        const serverUptime = runtime(process.uptime());
-        const totalCommands = commands.length;
+        const date = moment().tz("Africa/Nairobi").format("MMMM Do YYYY");
+        const time = moment().tz("Africa/Nairobi").format("HH:mm:ss");
+        const start = Date.now();
+        const ping = Date.now() - start;
 
-        // 1. Panga Amri kwa Makundi (Grouping Categories)
-        const organizedCommands = {};
-        commands.forEach((cmd) => {
-            if (!organizedCommands[cmd.categorie]) {
-                organizedCommands[cmd.categorie] = [];
+        const list_menu = {};
+        cm.forEach((command) => {
+            if (!list_menu[command.categorie]) {
+                list_menu[command.categorie] = [];
             }
-            organizedCommands[cmd.categorie].push(cmd.nomCom);
+            list_menu[command.categorie].push(command.nomCom);
         });
 
-        // 2. Kichwa cha Menu (Heroic Header)
-        let menuDisplay = `*⚡ TIMNASA MD • CORE COMMANDER ⚡*\n\n`;
-        menuDisplay += `*👤 COMMANDER:* ${nomAuteurMessage}\n`;
-        menuDisplay += `*🛰️ UPTIME:* ${serverUptime}\n`;
-        menuDisplay += `*🗂️ TOTAL SCRIPTS:* ${totalCommands} Operational\n`;
-        menuDisplay += `*🧠 RAM:* ${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)}GB Free\n`;
-        menuDisplay += `──────────────────────────\n\n`;
+        let menuMsg = `
+╭─────────────━┈⊷•
+│ 🤖 *𝙱𝙾𝚃:* 𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳
+│ 👤 *𝚄𝚂𝙴𝚁:* ${nomAuteurMessage}
+│ 📅 *𝙳𝙰𝚃𝙴:* ${date}
+│ ⌚ *𝚃𝙸𝙼𝙴:* ${time}
+│ 🚀 *𝙿𝙸𝙽𝙶:* ${ping} ms
+╰─────────────━┈⊷•
 
-        // 3. Auto-Scan & Display Categories (Hapa ndipo inasoma GitHub files)
-        const categories = Object.keys(organizedCommands).sort();
-        
+*『 𝚂𝙴𝚃𝚃𝙸𝙽𝙶𝚂 』*
+• \`\`\`${prefixe}welcome on/off\`\`\`
+• \`\`\`${prefixe}goodbye on/off\`\`\`
+
+*『 𝙲𝙾𝙽𝚃𝙰𝙲𝚃 』*
+• *Owner:* wa.me/255784766591
+
+*『 𝙲𝙾𝙼𝙼𝙰𝙽𝙳𝚂 𝙻𝙸𝚂𝚃 』*
+`;
+
+        const categories = Object.keys(list_menu).sort();
         for (const cat of categories) {
-            menuDisplay += `*┏━━━⚡ ${cat.toUpperCase()} ⚡━━━┓*\n`;
-            for (const cmdName of organizedCommands[cat]) {
-                menuDisplay += `│ 🛡️ ${conf.PREFIXE}${cmdName}\n`;
+            menuMsg += `\n*◈──╼[ ${cat.toUpperCase()} ]╾──◈*\n`;
+            for (const cmd of list_menu[cat]) {
+                menuMsg += `  ☞ ${prefixe}${cmd}\n`;
             }
-            menuDisplay += `*┗━━━━━━━━━━━━━━━━━━━━┛*\n\n`;
         }
 
-        menuDisplay += `> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛɪᴍɴᴀsᴀ ᴍᴅ - 2026\n`;
-        menuDisplay += `*📢 CHANNEL:* ${channelLink}`;
-
-        // 4. Kutuma Menu kwa Mtindo wa Kibabe
+        // 1. Send Menu Image with English Caption
         await zk.sendMessage(dest, {
-            image: { url: mybotpic() },
-            caption: menuDisplay,
+            image: { url: conf.IMAGE_MENU || "https://files.catbox.moe/zm113g.jpg" },
+            caption: menuMsg,
             contextInfo: {
-                externalAdReply: {
-                    title: "TIMNASA MD • AUTO-SCANNER ACTIVE",
-                    body: "System Matrix Synchronized with GitHub",
-                    thumbnailUrl: "https://files.catbox.moe/zm113g.jpg",
-                    sourceUrl: channelLink,
-                    mediaType: 1,
-                    showAdAttribution: true,
-                    renderLargerThumbnail: true
-                },
-                newsletterJid: "120363316279146194@newsletter",
-                newsletterName: "TIMNASA MD SYSTEM LOGS"
+                forwardingScore: 999,
+                isForwarded: true,
+                forwardedNewsletterMessageInfo: {
+                    newsletterJid: channelJid,
+                    newsletterName: "𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳 𝚂𝚈𝚂𝚃𝙴𝙼",
+                    serverMessageId: 1
+                }
             }
         }, { quoted: ms });
 
-    } catch (e) {
-        console.error("Menu Auto-Scan Error: ", e);
-        await zk.sendMessage(dest, { text: "❌ Failed to synchronize with GitHub command registry." });
+        // 2. Send Playable Audio (Ensures it plays in WhatsApp)
+        await zk.sendMessage(dest, {
+            audio: { url: audioUrl },
+            mimetype: 'audio/mp4', // Most compatible format for playback
+            ptt: true,
+            waveform: [10, 30, 50, 80, 50, 30, 50, 80, 50, 30, 10],
+            contextInfo: {
+                forwardingScore: 0,
+                isForwarded: false, 
+                externalAdReply: {
+                    title: "𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳 𝚂𝚈𝚂𝚃𝙴𝙼 𝙰𝙲𝚃𝙸𝚅𝙴",
+                    body: "Status: System Running",
+                    renderLargerThumbnail: false,
+                    mediaType: 1,
+                    thumbnailUrl: "https://files.catbox.moe/zm113g.jpg",
+                    sourceUrl: "https://wa.me/255784766591"
+                }
+            }
+        }, { quoted: ms });
+
+    } catch (error) {
+        console.error("Menu Generation Error:", error);
+        repondre("✅ Bot is online, but I had trouble displaying the full menu visuals.");
     }
 });
