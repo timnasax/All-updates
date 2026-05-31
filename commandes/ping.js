@@ -19,88 +19,66 @@ function runtime(seconds) {
 
 zokou({
   nomCom: "ping",
-  desc: "Check bot speed, RAM usage, and system status.",
+  desc: "Check bot speed and play music with channel view.",
   categorie: "General",
   reaction: "⚡"
 }, async (dest, zk, reponse) => {
   const { ms } = reponse;
-  const start = Date.now();
+  const start = new Date().getTime();
   
   // --- CONFIGURATION ---
-  const channelLink = "https://whatsapp.com/channel/0029Vb9kKuVCMY0F5rmX2j1u"; 
+  const channelJid = "120363406146813524@newsletter"; 
   const audioUrl = "https://files.catbox.moe/e4c48n.mp3"; 
   const imageUrl = "https://files.catbox.moe/zm113g.jpg"; 
   // ---------------------
 
   try {
-    const end = Date.now();
+    const end = new Date().getTime();
     const ping = end - start;
     const uptime = runtime(process.uptime());
     
-    // Memory Calculation (GB) safely
-    const totalRamGB = (os.totalmem() / (1024 ** 3)).toFixed(2);
-    const freeRamGB = (os.freemem() / (1024 ** 3)).toFixed(2);
-    const usedRamGB = (totalRamGB - freeRamGB).toFixed(2);
+    // Memory Calculation (GB)
+    const totalRam = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
+    const freeRam = (os.freemem() / 1024 / 1024 / 1024).toFixed(2);
+    const usedRam = (totalRam - freeRam).toFixed(2);
 
-    const statusMsg = `*🚀 ᴛɪᴍɴᴀsᴀ ᴘɪɴɢ 🚀*
-    
+    const statusMsg = `*🚀 TIMNASA PING 🚀*
+
 ╭─────────────━┈⊷• 
-│⚡│ *Latency:* ${ping} ms
-│⏱️│ *Uptime:* ${uptime}
-│💻│ *Platform:* ${os.platform()} (${os.arch()})
-│📊│ *RAM Usage:* ${usedRamGB}GB / ${totalRamGB}GB
+│⚡ *Latency:* ${ping} ms
+│⏱️ *Uptime:* ${uptime}
+│📊 *RAM:* ${usedRam}GB / ${totalRam}GB
 ╰─────────────━┈⊷• 
-│🔗│ *CHANNEL:* ${channelLink}
-╰─────────────━┈⊷•
-> ᴛɪᴍɴᴀsᴀ-ᴍᴅ`;
 
-    // Try sending the main configuration image first
-    try {
-      await zk.sendMessage(dest, {
-        image: { url: imageUrl },
-        caption: statusMsg
-      }, { quoted: ms });
-    } catch (imgError) {
-      console.error("Main image failed, trying user profile picture...");
-      
-      try {
-        // Detect sender JID for both Groups and DMs
-        const senderJid = ms.key.participant || ms.key.remoteJid;
-        
-        // Fetch the user's profile picture from WhatsApp servers
-        let profilePicUrl = await zk.profilePictureUrl(senderJid, 'image').catch(async () => {
-          // Fallback to bot's profile picture if the user doesn't have one
-          return await zk.profilePictureUrl(zk.user.id, 'image').catch(() => null);
-        });
+🎵 *Music is playing below...*
+📢 *Click "View Channel" to join us for more!*
 
-        if (profilePicUrl) {
-          await zk.sendMessage(dest, {
-            image: { url: profilePicUrl },
-            caption: statusMsg + "\n\n_(Note: Profile picture used due to media server error)_"
-          }, { quoted: ms });
-        } else {
-          // Force text fallback if no profile images are available
-          throw new Error("No profile picture available");
+> TIMNASA-MD`;
+
+    // 1. Send Image with Status & View Channel Button (Context)
+    await zk.sendMessage(dest, {
+      image: { url: imageUrl },
+      caption: statusMsg,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: channelJid,
+          newsletterName: "Timnasa Music", // You can change this name
+          serverMessageId: 143
         }
-      } catch (profileError) {
-        console.error("Profile picture fallback failed, sending text layout.");
-        await zk.sendMessage(dest, { text: statusMsg }, { quoted: ms });
       }
-    }
+    }, { quoted: ms });
 
-    // Try sending the audio track (failures here will not stop the command execution)
-    try {
-      await zk.sendMessage(dest, {
-        audio: { url: audioUrl },
-        mimetype: 'audio/mp4',
-        ptt: false 
-      }, { quoted: ms });
-    } catch (audioError) {
-      console.error("Audio playback file failed to send.");
-    }
+    // 2. Send Audio File
+    await zk.sendMessage(dest, {
+      audio: { url: audioUrl },
+      mimetype: 'audio/mp4',
+      ptt: false 
+    }, { quoted: ms });
 
   } catch (error) {
-    console.error("Critical Ping Command Error:", error);
-    await reponse.reply("❌ An error occurred: " + error.message);
+    console.error("Speed Command Error:", error);
+    await zk.sendMessage(dest, { text: "An error occurred while executing the command." }, { quoted: ms });
   }
 });
