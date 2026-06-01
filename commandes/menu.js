@@ -1,105 +1,106 @@
-const { zokou, commands } = require("../framework/zokou");
-const os = require("os");
+"use strict";
+
+const { zokou } = require("../framework/zokou");
 const conf = require("../set");
+const os = require("os");
+const moment = require("moment-timezone");
 
-// --- CONFIGURATION ENGINE ---
-const channelLink = "https://whatsapp.com/channel/0029Vb9kKuVCMY0F5rmX2j1u";
-const channelJid = "120363316279146194@newsletter";
-
-// GitHub Raw URL for Timothyx audio file from timnasax/All-updates
-const githubAudioUrl = "https://raw.githubusercontent.com/timnasax/All-updates/main/Timothyx.mp3";
-
-/**
- * Modern Uptime Formatter
- */
-function runtime(seconds) {
-    seconds = Number(seconds);
-    const d = Math.floor(seconds / (3600 * 24));
-    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+// Helper function to format uptime into Hours, Minutes, and Seconds
+function formatUptime(seconds) {
+    const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-    return `${d}d ${h}h ${m}m ${s}s`;
+    return `${h}h ${m}m ${s}s`;
 }
 
-// ---------------- COMMAND: ULTIMATE HEROIC AUTO-MENU ----------------
 zokou({
     nomCom: "menu",
-    aliases: ["help", "panel", "h"],
+    aliases: ["help", "list"],
     categorie: "General",
-    reaction: "⚔️"
-}, async (dest, zk, info) => {
-    const { ms, mybotpic, nomAuteurMessage, auteurMessage } = info;
+    reaction: "👑"
+}, async (dest, zk, commandeOptions) => {
+    const { ms, repondre, prefixe, nomAuteurMessage } = commandeOptions;
+    const { cm } = require(__dirname + "/../framework/zokou"); // Accesses the command registry
+    const channelJid = "120363406146813524@newsletter";
 
     try {
-        const serverUptime = runtime(process.uptime());
-        const totalCommands = commands.length;
-
-        // 1. Tafuta Picha ya Mtumiaji (User Profile Pic) aliyetuma amri au weka ya Bot kama mbadala
-        let userPic;
-        try {
-            userPic = await zk.profilePictureUrl(auteurMessage, 'image');
-        } catch {
-            userPic = mybotpic(); // Picha ya bot ikifeli ya user
-        }
-
-        // 2. Panga Amri kwa Makundi (GitHub Auto-Scan)
-        const organizedCommands = {};
-        commands.forEach((cmd) => {
-            if (!organizedCommands[cmd.categorie]) {
-                organizedCommands[cmd.categorie] = [];
+        // Date and Time Setup
+        const date = moment().tz("Africa/Nairobi").format("DD/MM/YYYY");
+        const time = moment().tz("Africa/Nairobi").format("HH:mm:ss");
+        const uptime = formatUptime(process.uptime());
+        
+        // Organize commands by category (with duplicate prevention)
+        const list_menu = {};
+        cm.forEach((command) => {
+            if (!command.nomCom || command.nomCom.trim() === "") return;
+            if (!list_menu[command.categorie]) {
+                list_menu[command.categorie] = [];
             }
-            organizedCommands[cmd.categorie].push(cmd.nomCom);
+            if (!list_menu[command.categorie].includes(command.nomCom)) {
+                list_menu[command.categorie].push(command.nomCom);
+            }
         });
 
-        // 3. Muonekano wa Kishujaa wa Dashboard (Heroic Layout)
-        let menuDisplay = `*⚡ TIMNASA MD • CORE COMMANDER ⚡*\n\n`;
-        menuDisplay += `*👤 COMMANDER:* ${nomAuteurMessage}\n`;
-        menuDisplay += `*🛰️ UPTIME:* ${serverUptime}\n`;
-        menuDisplay += `*🗂️ TOTAL SCRIPTS:* ${totalCommands} Operational\n`;
-        menuDisplay += `*🧠 RAM:* ${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)}GB Free\n`;
-        menuDisplay += `──────────────────────────\n\n`;
+        // Fancy Menu Header Block
+        let menuMsg = `✨ *T I M N A S A - T M D* ✨
+╔════════════════════╗
+  🤖 *𝙱𝙾𝚃:* 𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳
+  👤 *𝚄𝚂𝙴𝚁:* ${nomAuteurMessage}
+  📅 *𝙳𝙰𝚃𝙴:* ${date}
+  ⌚ *𝚃𝙸𝙼𝙴:* ${time}
+  ⏳ *𝚄𝙿𝚃𝙸𝙼𝙴:* ${uptime}
+╚════════════════════╝
 
-        // Auto-Scan Makundi yote ya amri kutoka kwenye faili zako zote
-        const categories = Object.keys(organizedCommands).sort();
+*╭──────────────⊷*
+│ 🎯 *𝙰𝚅𝙰𝙸𝙻𝙰𝙱𝙻𝙴 𝙲𝙾𝙼𝙼𝙰𝙽𝙳𝚂:*
+*╰──────────────⊷*
+`;
+
+        // Sort categories and list commands with elegant styling
+        const categories = Object.keys(list_menu).sort();
         for (const cat of categories) {
-            menuDisplay += `*┏━━━⚡ ${cat.toUpperCase()} ⚡━━━┓*\n`;
-            for (const cmdName of organizedCommands[cat]) {
-                menuDisplay += `│ 🛡️ ${conf.PREFIXE}${cmdName}\n`;
+            menuMsg += `\n*╔═════ ❖ [ ${cat.toUpperCase()} ] ❖ ═════╗*\n`;
+            for (const cmd of list_menu[cat]) {
+                menuMsg += `  │ 🌟 ${prefixe}${cmd}\n`;
             }
-            menuDisplay += `*┗━━━━━━━━━━━━━━━━━━━━┛*\n\n`;
+            menuMsg += `*╚══════════════════════╝*\n`;
         }
 
-        menuDisplay += `> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛɪᴍɴᴀsᴀ ᴍᴅ - 2026\n`;
-        menuDisplay += `*📢 CHANNEL:* ${channelLink}`;
+        menuMsg += `\n\n⚡ _Powered with love by TIMNASA TMD SYSTEM_ ⚡`;
 
-        // 4. Tuma Menu ikiwa na Picha ya Mtumiaji anayeomba
+        // Profile Picture or Menu Image
+        let menuImg;
+        try {
+            menuImg = await zk.profilePictureUrl(zk.user.id, 'image');
+        } catch {
+            menuImg = conf.IMAGE_MENU || "https://files.catbox.moe/zm113g.jpg";
+        }
+
+        // Send Menu with Professional and Decorated Context
         await zk.sendMessage(dest, {
-            image: { url: userPic },
-            caption: menuDisplay,
+            image: { url: menuImg },
+            caption: menuMsg,
             contextInfo: {
-                externalAdReply: {
-                    title: "TIMNASA MD • MAIN CORE PROTOCOL",
-                    body: `Commander: ${nomAuteurMessage} | System Online`,
-                    thumbnailUrl: userPic,
-                    sourceUrl: channelLink,
-                    mediaType: 1,
-                    showAdAttribution: true,
-                    renderLargerThumbnail: true
+                forwardingScore: 999,
+                isForwarded: true,
+                forwardedNewsletterMessageInfo: {
+                    newsletterJid: channelJid,
+                    newsletterName: "🔮 𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳 𝙰𝚄𝚃𝙾 𝙼𝙴𝙽𝚄 🔮",
+                    serverMessageId: 1
                 },
-                newsletterJid: channelJid,
-                newsletterName: "TIMNASA MD SYSTEM MATRIX"
+                externalAdReply: {
+                    title: "👑 𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳 𝙾𝙵𝙵𝙸𝙲𝙸𝙰𝙻 𝙼𝙴𝙽𝚄 👑",
+                    body: "Advanced WhatsApp Bot System",
+                    thumbnailUrl: menuImg,
+                    sourceUrl: "https://whatsapp.com/channel/0029VaF39946H4YhS6u8Yt3q",
+                    mediaType: 1,
+                    renderLargerThumbnail: true // Makes the link preview image nice and large
+                }
             }
         }, { quoted: ms });
 
-        // 5. Tuma Wimbo wa Timothyx kutoka kwenye GitHub yako kiotomatiki
-        await zk.sendMessage(dest, {
-            audio: { url: githubAudioUrl },
-            mimetype: "audio/mp4",
-            ptt: true // true inatuma kama Voice Note ya kishujaa, weka false kama unataka uende kama faili la Audio la kawaida
-        }, { quoted: ms });
-
-    } catch (e) {
-        console.error("Critical error in Advanced Menu Engine: ", e);
-        await zk.sendMessage(dest, { text: "❌ Mainframe core deployment failed to synchronize." });
+    } catch (error) {
+        console.error("Menu Error:", error);
+        repondre("❌ An error occurred while loading the menu: " + error.message);
     }
 });
