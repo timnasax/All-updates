@@ -1,34 +1,128 @@
-const { zokou } = require("../framework/zokou");
-const axios = require("axios");
+const {zokou} = require('../framework/zokou');
+const fs = require('fs');
+const getFBInfo = require("@xaviabot/fb-downloader");
+const { default: axios } = require('axios');
 
-// INSTAGRAM
-zokou({
-  nomCom: "insta",
-  reaction: "📸",
-  categorie: "Download"
-}, async (dest, zk, commandeOptions) => {
-  const { repondre, arg, ms } = commandeOptions;
-  if (!arg[0]) return repondre("Weka link ya Instagram!");
+zokou({nomCom : "igdl" , categorie : "Download"},async (dest , zk , commandeOptions)=>{
+  const {ms,repondre,arg} = commandeOptions ;
+
+  let link = arg.join(' ')
+
+  if (!arg[0]) { repondre('Veillez insérer un lien video instagramme');return}; 
 
   try {
-    const res = await axios.get(`https://api.vreden.my.id/api/igdownload?url=${arg[0]}`);
-    const media = res.data.result[0].url;
-    await zk.sendMessage(dest, { video: { url: media }, caption: `GitHub: https://github.com/timnasax` }, { quoted: ms });
-  } catch (e) { repondre("Imeshindikana kupakua."); }
+     
+    let igvid = await axios('https://www.noobs-api.rf.gd/dipto/alldl?url='+link)
+
+    if (igvid.data.data.data[0].type == 'video') {
+    zk.sendMessage(dest,{video : {url : igvid.data.data.data[0].url},caption : "ig video downloader powered by *HACKING-Md*",gifPlayback : false },{quoted : ms}) 
+    }
+    else {
+        zk.sendMessage(dest,{image : {url : igvid.data.data.data[0].url},caption : "ig image downloader powered by *Zokou-Md*"})
+    }
+  
+  } catch (e) {repondre("erreur survenue lors du téléchargement \n " + e)}
+  
 });
 
-// FACEBOOK
+
 zokou({
-  nomCom: "fb",
-  reaction: "🔵",
-  categorie: "Download"
-}, async (dest, zk, commandeOptions) => {
-  const { repondre, arg, ms } = commandeOptions;
-  if (!arg[0]) return repondre("Weka link ya Facebook!");
+  nomCom: "fbdl",
+  categorie: "Download",
+  reaction: "📽️"
+},
+async (dest, zk, commandeOptions) => {
+  const { repondre, ms, arg } = commandeOptions;
+
+  if (!arg[0]) {
+    repondre('Insert a public facebook video link!');
+    return;
+  }
+
+  const queryURL = arg.join(" ");
 
   try {
-    const res = await axios.get(`https://api.vreden.my.id/api/fbdownload?url=${arg[0]}`);
-    const video = res.data.result.hd || res.data.result.sd;
-    await zk.sendMessage(dest, { video: { url: video }, caption: `GitHub: https://github.com/timnasax` }, { quoted: ms });
-  } catch (e) { repondre("Video haikuonekana."); }
+     getFBInfo(queryURL)
+    .then((result) => {
+       let caption = `
+        titre: ${result.title}
+        Lien: ${result.url}
+      `;
+       zk.sendMessage(dest,{image : { url : result.thumbnail}, caption : caption},{quoted : ms}) ;
+       zk.sendMessage(dest, { video: { url: result.hd  }, caption: 'facebook video downloader powered by *Timnasa*' }, { quoted: ms });
+      
+    })
+    .catch((error) => {console.log("Error:", error)
+                      repondre('try fbdl2 on this link')});
+
+
+   
+  } catch (error) {
+    console.error('Erreur lors du téléchargement de la vidéo :', error);
+    repondre('Erreur lors du téléchargement de la vidéo.' , error);
+  }
+});
+
+
+
+zokou({ nomCom: "tiktok", categorie: "Download", reaction: "🎵" }, async (dest, zk, commandeOptions) => {
+  const { arg, ms, prefixe,repondre } = commandeOptions;
+  if (!arg[0]) {
+    repondre(`how to use this command:\n ${prefixe}tiktok tiktok_video_link`);
+    return;
+  }
+
+  const videoUrl = arg.join(" ");
+
+ let data = await axios.get('https://api.diioffc.web.id/api/download/instagram?url='+ videoUrl) ;
+
+  let tik = data.data.data
+
+      // Envoi du message avec le thumbnail de la vidéo
+      const caption = `
+Author: ${tik.author}
+Description: ${tik.desc}
+      `;
+
+         
+      zk.sendMessage(dest, { video: { url: tik.links[0].a} , caption : caption },{quoted : ms});    
+
+  
+});
+
+zokou({
+  nomCom: "fbdl2",
+  categorie: "Download",
+  reaction: "📽️"
+},
+async (dest, zk, commandeOptions) => {
+  const { repondre, ms, arg } = commandeOptions;
+
+  if (!arg[0]) {
+    repondre('Insert a public facebook video link! !');
+    return;
+  }
+
+  const queryURL = arg.join(" ");
+
+  try {
+     getFBInfo(queryURL)
+    .then((result) => {
+       let caption = `
+        titre: ${result.title}
+        Lien: ${result.url}
+      `;
+       zk.sendMessage(dest,{image : { url : result.thumbnail}, caption : caption},{quoted : ms}) ;
+       zk.sendMessage(dest, { video: { url: result.sd  }, caption: 'facebook video downloader powered by *HACKING-MD*' }, { quoted: ms });
+      
+    })
+    .catch((error) => {console.log("Error:", error)
+                      repondre(error)});
+
+
+   
+  } catch (error) {
+    console.error('Erreur lors du téléchargement de la vidéo :', error);
+    repondre('Erreur lors du téléchargement de la vidéo.' , error);
+  }
 });
