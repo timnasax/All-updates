@@ -1,6 +1,6 @@
 const { zokou } = require("../framework/zokou");
 const yts = require("yt-search");
-const axios = require("axios"); // Hakikisha axios ipo kwa ajili ya kuitisha API
+const axios = require("axios");
 
 zokou({
     nomCom: "solo",
@@ -22,7 +22,7 @@ zokou({
 
         // 2. Tafuta video kwenye YouTube
         const searchResults = await yts(searchQuery);
-        const video = searchResults.videos[0];
+        const video = searchResults.videos;
 
         if (!video) {
             return zk.sendMessage(dest, { text: "❌ Wimbo haujapatikana. Jaribu tena." }, { quoted: ms });
@@ -38,26 +38,24 @@ zokou({
         await zk.sendMessage(dest, { image: { url: thumbnail }, caption: infoMessage }, { quoted: ms });
 
         // ==========================================
-        // 🛠️ SEHEMU YA API (IJAZE WEWE MWENYEWE)
+        // 🛠️ API YA CLINTON (IMEWEKWA SAHIHI HAPA)
         // ==========================================
-        
-        // Mfano: const apiUrl = `https://api.website yako.com/download?url=${encodeURIComponent(videoUrl)}`;
-        const apiUrl = `https://apiz.xhclinton.me/api/downloader/vimeo?apikey=toxicapis&url=https://vimeo.com/76979871`; 
+        // Nimebadilisha '/vimeo' kuwa '/ytmp3' ili ikubali link za YouTube
+        const apiUrl = `https://apiz.xhclinton.me/api/downloader/ytmp3?apikey=toxicapis&url=${encodeURIComponent(videoUrl)}`; 
 
-        // Kuitisha API yako (fanya marekebisho kulingana na muundo wa response ya API yako)
         const response = await axios.get(apiUrl);
         
-        // Hapa chukua ile link ya mp3 iliyorudishwa na API yako
-        // Mfano kama inarudisha { status: true, dl_url: "link" } utachukua response.data.dl_url
-        const mp3DownloadUrl = response.vimeo.com/76979871; 
+        // Kuvuta link ya download kutoka kwenye response ya API ya Clinton
+        // Mara nyingi API zake data inakaa kwenye response.data.result.download au response.data.url
+        const mp3DownloadUrl = response.data.result?.download || response.data.url || response.data.result; 
 
         // ==========================================
 
         if (!mp3DownloadUrl) {
-            return zk.sendMessage(dest, { text: "❌ Hitilafu: API imeshindwa kurudisha link ya MP3." }, { quoted: ms });
+            return zk.sendMessage(dest, { text: "❌ Hitilafu: API imeshindwa kurudisha link ya MP3. Huenda API key au Endpoint imebadilika." }, { quoted: ms });
         }
 
-        // 3. Tuma faili la MP3 kwenda kwa mtumiaji
+        // 3. Tuma faili la MP3 kwenda kwa mtumiaji kama Audio (sio kama file/document)
         await zk.sendMessage(dest, { 
             audio: { url: mp3DownloadUrl }, 
             mimetype: 'audio/mp4', 
@@ -66,6 +64,6 @@ zokou({
 
     } catch (error) {
         console.error(error);
-        await zk.sendMessage(dest, { text: "❌ Amri imeshindwa kufanya kazi. Angalia kama API yako iko sawa." }, { quoted: ms });
+        await zk.sendMessage(dest, { text: "❌ Amri imeshindwa kufanya kazi. Hakikisha bot yako ina internet na API ya Clinton ipo hewani." }, { quoted: ms });
     }
 });
