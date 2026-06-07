@@ -10,26 +10,43 @@ function runtime(seconds) {
     var h = Math.floor(seconds % (3600 * 24) / 3600);
     var m = Math.floor(seconds % 3600 / 60);
     var s = Math.floor(seconds % 60);
-    var dDisplay = d > 0 ? d + (d == 1 ? " day, " : " days, ") : "";
-    var hDisplay = h > 0 ? h + (h == 1 ? " hr, " : " hrs, ") : "";
-    var mDisplay = m > 0 ? m + (m == 1 ? " min, " : " mins, ") : "";
-    var sDisplay = s > 0 ? s + (s == 1 ? " sec" : " secs") : "";
+    var dDisplay = d > 0 ? d + (d == 1 ? "d " : "d ") : "";
+    var hDisplay = h > 0 ? h + (h == 1 ? "h " : "h ") : "";
+    var mDisplay = m > 0 ? m + (m == 1 ? "m " : "m ") : "";
+    var sDisplay = s > 0 ? s + (s == 1 ? "s" : "s") : "";
     return dDisplay + hDisplay + mDisplay + sDisplay;
+}
+
+/**
+ * Helper function to detect country from WhatsApp ID prefix
+ */
+function getCountryFromJid(jid) {
+    if (!jid) return "Unknown 🌍";
+    if (jid.startsWith("255")) return "Tanzania 🇹🇿";
+    if (jid.startsWith("254")) return "Kenya 🇰🇪";
+    if (jid.startsWith("256")) return "Uganda 🇺🇬";
+    if (jid.startsWith("1")) return "United States 🇺🇸";
+    if (jid.startsWith("44")) return "United Kingdom 🇬🇧";
+    if (jid.startsWith("234")) return "Nigeria 🇳🇬";
+    if (jid.startsWith("27")) return "South Africa 🇿🇦";
+    if (jid.startsWith("91")) return "India 🇮🇳";
+    // Unaweza kuongeza nchi nyingine hapa
+    return "Global User 🌐";
 }
 
 zokou({
   nomCom: "ping",
-  desc: "Check bot speed and play music with channel view.",
+  desc: "Check advanced futuristic bot speed and user analytics.",
   categorie: "General",
-  reaction: "⚡"
+  reaction: "🌐"
 }, async (dest, zk, reponse) => {
-  const { ms } = reponse;
+  const { ms, sender } = reponse;
   const start = new Date().getTime();
   
   // --- CONFIGURATION ---
   const channelJid = "120363406146813524@newsletter"; 
   const audioUrl = "https://files.catbox.moe/e4c48n.mp3"; 
-  const imageUrl = "https://files.catbox.moe/zm113g.jpg"; 
+  const defaultImageUrl = "https://files.catbox.moe/zm113g.jpg"; 
   // ---------------------
 
   try {
@@ -42,29 +59,49 @@ zokou({
     const freeRam = (os.freemem() / 1024 / 1024 / 1024).toFixed(2);
     const usedRam = (totalRam - freeRam).toFixed(2);
 
-    const statusMsg = `*🚀 TIMNASA PING 🚀*
+    // User Data Analytics
+    const username = reponse.nomAuteur || "User";
+    const userCountry = getCountryFromJid(sender);
+    
+    // Fetch User Profile Picture (Kama hana au imefichwa, itatumia default)
+    let userPfp;
+    try {
+        userPfp = await zk.profilePictureUrl(sender, 'image');
+    } catch {
+        userPfp = defaultImageUrl;
+    }
 
-╭─────────────━┈⊷• 
-│⚡ *Latency:* ${ping} ms
-│⏱️ *Uptime:* ${uptime}
-│📊 *RAM:* ${usedRam}GB / ${totalRam}GB
-╰─────────────━┈⊷• 
+    // Futuristic 2030 Status Template
+    const statusMsg = `*🔹 TIMNASA SYSTEM V5.0 🔹*
+_Next-Gen Matrix Diagnostics_
+🔹 Verified User: *${username}* ☑️
 
-🎵 *Music is playing below...*
-📢 *Click "View Channel" to join us for more!*
+╔═════════════════════════╗
+  *⚡ PING ANALYTICS (2030)*
+╚═════════════════════════╝
+ 🚀 *System Speed:* ${ping} ms
+ ⏱️ *Uptime Matrix:* ${uptime} Active
+ 🌍 *User Location:* ${userCountry}
+ 👤 *Session Operator:* @${sender.split('@')[0]}
+ 📊 *Quantum RAM:* ${usedRam}GB / ${totalRam}GB
 
-> TIMNASA-MD`;
+📡 *Network Status:* Stable 📶
+🛸 *Engine:* TIMNASA-MD FutureX
 
-    // 1. Send Image with Status & View Channel Button (Context)
+🎵 _Streaming audio payload below..._
+📢 _Click 'View Channel' to bridge connection._`;
+
+    // 1. Send Image (Profile Picture or Default) with Status & View Channel Button
     await zk.sendMessage(dest, {
-      image: { url: imageUrl },
+      image: { url: userPfp },
       caption: statusMsg,
+      mentions: [sender], // Inamtag mtumiaji
       contextInfo: {
         forwardingScore: 999,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
           newsletterJid: channelJid,
-          newsletterName: "Timnasa Music", // You can change this name
+          newsletterName: "🚀 Timnasa Music Verified ☑️", 
           serverMessageId: 143
         }
       }
@@ -79,6 +116,6 @@ zokou({
 
   } catch (error) {
     console.error("Speed Command Error:", error);
-    await zk.sendMessage(dest, { text: "An error occurred while executing the command." }, { quoted: ms });
+    await zk.sendMessage(dest, { text: "🛸 Core Error: Failed to fetch matrix data." }, { quoted: ms });
   }
 });
