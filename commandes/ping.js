@@ -10,10 +10,10 @@ function runtime(seconds) {
     var h = Math.floor(seconds % (3600 * 24) / 3600);
     var m = Math.floor(seconds % 3600 / 60);
     var s = Math.floor(seconds % 60);
-    var dDisplay = d > 0 ? d + (d == 1 ? "d " : "d ") : "";
-    var hDisplay = h > 0 ? h + (h == 1 ? "h " : "h ") : "";
-    var mDisplay = m > 0 ? m + (m == 1 ? "m " : "m ") : "";
-    var sDisplay = s > 0 ? s + (s == 1 ? "s" : "s") : "";
+    var dDisplay = d > 0 ? d + "d " : "";
+    var hDisplay = h > 0 ? h + "h " : "";
+    var mDisplay = m > 0 ? m + "m " : "";
+    var sDisplay = s > 0 ? s + "s" : "";
     return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
@@ -21,7 +21,7 @@ function runtime(seconds) {
  * Helper function to detect country from WhatsApp ID prefix
  */
 function getCountryFromJid(jid) {
-    if (!jid) return "Unknown 🌍";
+    if (!jid) return "Global User 🌐";
     if (jid.startsWith("255")) return "Tanzania 🇹🇿";
     if (jid.startsWith("254")) return "Kenya 🇰🇪";
     if (jid.startsWith("256")) return "Uganda 🇺🇬";
@@ -30,7 +30,6 @@ function getCountryFromJid(jid) {
     if (jid.startsWith("234")) return "Nigeria 🇳🇬";
     if (jid.startsWith("27")) return "South Africa 🇿🇦";
     if (jid.startsWith("91")) return "India 🇮🇳";
-    // Unaweza kuongeza nchi nyingine hapa
     return "Global User 🌐";
 }
 
@@ -38,9 +37,9 @@ zokou({
   nomCom: "ping",
   desc: "Check advanced futuristic bot speed and user analytics.",
   categorie: "General",
-  reaction: "🌐"
+  reaction: "🚀"
 }, async (dest, zk, reponse) => {
-  const { ms, sender } = reponse;
+  const { ms } = reponse;
   const start = new Date().getTime();
   
   // --- CONFIGURATION ---
@@ -48,6 +47,9 @@ zokou({
   const audioUrl = "https://files.catbox.moe/e4c48n.mp3"; 
   const defaultImageUrl = "https://files.catbox.moe/zm113g.jpg"; 
   // ---------------------
+
+  // Kupata JID (Namba) ya mtumiaji kwa usalama zaidi
+  const senderNumber = ms.key.participant || ms.key.remoteJid || dest;
 
   try {
     const end = new Date().getTime();
@@ -60,15 +62,17 @@ zokou({
     const usedRam = (totalRam - freeRam).toFixed(2);
 
     // User Data Analytics
-    const username = reponse.nomAuteur || "User";
-    const userCountry = getCountryFromJid(sender);
+    const username = reponse.nomAuteur || "Timnasa Operator";
+    const userCountry = getCountryFromJid(senderNumber);
     
-    // Fetch User Profile Picture (Kama hana au imefichwa, itatumia default)
-    let userPfp;
+    // Kuchukua picha kwa usalama (Kama ikigoma, inaruka kwenda kwenye default bila kuharibu mfumo)
+    let finalImage = defaultImageUrl;
     try {
-        userPfp = await zk.profilePictureUrl(sender, 'image');
-    } catch {
-        userPfp = defaultImageUrl;
+        const pfp = await zk.profilePictureUrl(senderNumber, 'image');
+        if (pfp) finalImage = pfp;
+    } catch (pfpError) {
+        // Picha ya mtumiaji imeshindwa kupatikana (labda privacy yake), tunatumia default image
+        finalImage = defaultImageUrl;
     }
 
     // Futuristic 2030 Status Template
@@ -82,7 +86,7 @@ _Next-Gen Matrix Diagnostics_
  🚀 *System Speed:* ${ping} ms
  ⏱️ *Uptime Matrix:* ${uptime} Active
  🌍 *User Location:* ${userCountry}
- 👤 *Session Operator:* @${sender.split('@')[0]}
+ 👤 *Session Operator:* @${senderNumber.split('@')[0]}
  📊 *Quantum RAM:* ${usedRam}GB / ${totalRam}GB
 
 📡 *Network Status:* Stable 📶
@@ -91,11 +95,11 @@ _Next-Gen Matrix Diagnostics_
 🎵 _Streaming audio payload below..._
 📢 _Click 'View Channel' to bridge connection._`;
 
-    // 1. Send Image (Profile Picture or Default) with Status & View Channel Button
+    // 1. Send Image na Maelezo yote ya 2030 Style
     await zk.sendMessage(dest, {
-      image: { url: userPfp },
+      image: { url: finalImage },
       caption: statusMsg,
-      mentions: [sender], // Inamtag mtumiaji
+      mentions: [senderNumber], 
       contextInfo: {
         forwardingScore: 999,
         isForwarded: true,
@@ -116,6 +120,9 @@ _Next-Gen Matrix Diagnostics_
 
   } catch (error) {
     console.error("Speed Command Error:", error);
-    await zk.sendMessage(dest, { text: "🛸 Core Error: Failed to fetch matrix data." }, { quoted: ms });
+    // Hata kitu kikifeli kabisa, bot haitakaa kimya, itatuma ujumbe huu wa dharura:
+    await zk.sendMessage(dest, { 
+      text: `*🚀 TIMNASA PING (2030)*\n\n⚡ *Speed:* ${new Date().getTime() - start} ms\n⏱️ *Uptime:* ${runtime(process.uptime())}\n\n_Note: Matrix graphics encounted an issue._`
+    }, { quoted: ms });
   }
 });
