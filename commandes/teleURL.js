@@ -6,7 +6,7 @@ const FormData = require("form-data");
 const fs = require("fs");
 
 zokou({
-    nomCom: "url",
+    nomCom: "urln",
     aliases: ["tourl", "upload", "geturl"],
     categorie: "Tools",
     reaction: "🔗"
