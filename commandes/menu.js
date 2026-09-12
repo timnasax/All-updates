@@ -3,6 +3,7 @@
 const { zokou, cm } = require("../framework/zokou");
 const conf = require("../set");
 const moment = require("moment-timezone");
+const os = require("os");
 
 // Helper function to format uptime
 function formatUptime(seconds) {
@@ -14,7 +15,7 @@ function formatUptime(seconds) {
 
 zokou({
     nomCom: "menu",
-    aliases: ["help", "list"],
+    aliases: ["help", "list", "m"],
     categorie: "General",
     reaction: "👑"
 }, async (dest, zk, commandeOptions) => {
@@ -26,7 +27,16 @@ zokou({
         const date = moment().tz("Africa/Nairobi").format("DD/MM/YYYY");
         const time = moment().tz("Africa/Nairobi").format("HH:mm:ss");
         const uptime = formatUptime(process.uptime());
-        
+
+        // Updated Image URL
+        const menuImg = "https://raw.githubusercontent.com/timnasax/All-updates/refs/heads/main/img_timoth/IMG_3280.jpeg";
+
+        // Bot & System Info
+        const isPublic = zk.public ? "PUBLIC" : "PRIVATE";
+        const platform = os.platform();
+        const ramUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+        const ramTotal = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
+
         // Organize commands by category
         const list_menu = {};
         cm.forEach((command) => {
@@ -40,39 +50,40 @@ zokou({
             }
         });
 
-        // ═══════════════ MWONEKANO MUPYA WA MENU ═══════════════
+        // ═══════════════ MODERN MENU CAPTION ═══════════════
         let menuMsg = `
-╭─────────────➣
-│ ⚡ *TIMNASA-TMD SYSTEM* ⚡
-├───────────────
-│ 👤 *User:* ${nomAuteurMessage || "User"}
-│ ⚙️ *Prefix:* [ ${prefixe} ]
-│ 📅 *Date:* ${date}
-│ ⏰ *Time:* ${time}
-│ ⏳ *Uptime:* ${uptime}
-│ 📊 *Total Commands:* ${cm.length}
-╰─────────────➣
+╭━━━❮ 👑 *TIMNASA-TMD CONTROL PANEL* 👑 ❯━━━╮
+┃
+┃ 👤 *User:* \`${nomAuteurMessage || "User"}\`
+┃ ⚙️ *Prefix:* \`[ ${prefixe} ]\`
+┃ 🔓 *Mode:* \`${isPublic}\`
+┃ 📊 *RAM:* \`${ramUsed}MB / ${ramTotal}GB\`
+┃ 💻 *Platform:* \`${platform}\`
+┃ 📅 *Date:* \`${date}\`
+┃ ⏰ *Time:* \`${time}\`
+┃ ⏳ *Uptime:* \`${uptime}\`
+┃ 🎯 *Total Commands:* \`${cm.length}\`
+┃
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
 
-◈──── ❮ *COMMAND PANELS* ❯ ────◈
+✨ *AVAILABLE COMMAND CATEGORIES* ✨
 `;
 
-        // Categories & Commands Styling
+        // Loop through categories & format commands
         const categories = Object.keys(list_menu).sort();
         for (const cat of categories) {
-            menuMsg += `\n┌───〔 *${cat.toUpperCase()}* 〕`;
+            menuMsg += `\n╭───────〔 *${cat.toUpperCase()}* 〕───────❖\n`;
             for (const cmd of list_menu[cat]) {
-                menuMsg += `\n│ ➣ ${prefixe}${cmd}`;
+                menuMsg += `│ ⚡ \`${prefixe}${cmd}\`\n`;
             }
-            menuMsg += `\n└─────────────────\n`;
+            menuMsg += `╰───────────────────────────────❖\n`;
         }
 
-        menuMsg += `\n*─────────── TIMNASA TMD ───────────*
-> 💡 *Tip:* Type *${prefixe}<command>* to execute.`;
+        menuMsg += `
+> 💎 *TIMNASA-TMD BOT SYSTEM* 💎
+> 💡 *Tip:* Type *${prefixe}<command>* to use any command.`;
 
-        // Direct Image Link ya ImgBB
-        const menuImg = "https://i.ibb.co/s9n8pn7m/image.jpg";
-
-        // Send Menu Payload
+        // Send payload
         await zk.sendMessage(dest, {
             image: { url: menuImg },
             caption: menuMsg,
@@ -86,10 +97,10 @@ zokou({
                 },
                 externalAdReply: {
                     title: "👑 𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳 𝙾𝙵𝙵𝙸𝙲𝙸𝙰𝙻 𝙼𝙴𝙽𝚄 👑",
-                    body: "Advanced WhatsApp Bot System",
+                    body: `Total Commands: ${cm.length} | Status: Online`,
                     sourceUrl: "https://whatsapp.com/channel/0029VaF39946H4YhS6u8Yt3q",
                     mediaType: 1,
-                    renderLargerThumbnail: false
+                    renderLargerThumbnail: true
                 }
             }
         }, { quoted: ms });
