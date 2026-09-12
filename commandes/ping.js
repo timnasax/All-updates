@@ -1,6 +1,7 @@
 "use strict";
 
 const { zokou } = require("../framework/zokou");
+const os = require("os");
 
 zokou({
     nomCom: "ping",
@@ -8,7 +9,7 @@ zokou({
     categorie: "General",
     reaction: "⚡"
 }, async (dest, zk, commandeOptions) => {
-    const { ms, repondre } = commandeOptions;
+    const { ms, repondre, sender } = commandeOptions;
     const channelJid = "120363406146813524@newsletter";
 
     try {
@@ -17,21 +18,31 @@ zokou({
         const end = Date.now();
         const pingTime = end - start;
 
-        // Message caption
+        // Picha mpya uliyotoa
+        const pingImg = "https://raw.githubusercontent.com/timnasax/All-updates/refs/heads/main/img_timoth/IMG_3281.jpeg";
+
+        // Angalia kama Bot ipo Public au Private
+        const isPublic = zk.public ? "PUBLIC" : "PRIVATE";
+
+        // Taarifa za Platform na System
+        const platform = os.platform(); // e.g., linux, win32
+        const ramUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+        const ramTotal = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
+
+        // Ujumbe wa muonekano wa kisasa (Modern Ping Caption)
         const pingMsg = `
 ╭─────────────➣
-│ ⚡ *TIMNASA-TMD PING* ⚡
+│ ⚡ *TIMNASA-TMD SPEED* ⚡
 ├───────────────
-│ 🚀 *Speed:* ${pingTime}ms
-│ 🤖 *Status:* Online & Active
-│ 👑 *System:* TIMNASA TMD
+│ 🚀 *Latency:* \`${pingTime} ms\`
+│ 🌐 *Mode:* \`${isPublic}\`
+│ 💻 *Platform:* \`${platform}\`
+│ 📊 *RAM Usage:* \`${ramUsed}MB / ${ramTotal}GB\`
+│ 🤖 *Status:* \`ONLINE 🟢\`
 ╰─────────────➣
 `;
 
-        // Direct Image URL ya ImgBB
-        const pingImg = "https://i.ibb.co/0j1VnQW4/image.jpg";
-
-        // Tuma ujumbe wenye picha na speed info
+        // Tuma ujumbe wenye picha na taarifa zote
         await zk.sendMessage(dest, {
             image: { url: pingImg },
             caption: pingMsg,
@@ -45,10 +56,10 @@ zokou({
                 },
                 externalAdReply: {
                     title: "⚡ 𝚃𝙸𝙼𝙽𝙰𝚂𝙰-𝚃𝙼𝙳 𝙿𝙸𝙽𝙶 ⚡",
-                    body: `Response Time: ${pingTime}ms`,
+                    body: `Response Time: ${pingTime}ms | Mode: ${isPublic}`,
                     sourceUrl: "https://whatsapp.com/channel/0029VaF39946H4YhS6u8Yt3q",
- mediaType: 1,
-                    renderLargerThumbnail: false
+                    mediaType: 1,
+                    renderLargerThumbnail: true
                 }
             }
         }, { quoted: ms });
