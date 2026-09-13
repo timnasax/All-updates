@@ -1,57 +1,51 @@
 const { zokou } = require("../framework/zokou");
 const axios = require("axios");
 
-zokou({
-    nomCom: "apk",
+zokou(
+  {
+    nomCom: "apkdl",
+    alias: ["apk", "downloadapk"],
     categorie: "Download",
-    reaction: "📥"
-}, async (dest, zk, commandeOptions) => {
+    reaction: "📦"
+  },
+  async (dest, zk, commandeOptions) => {
     const { arg, repondre, ms } = commandeOptions;
 
-    if (!arg[0]) {
-        return repondre("Please provide the name of the app you want to download. \n\nExample: .playstore facebook");
+    // Check if user provided a URL
+    if (!arg || arg.length === 0) {
+      return repondre(
+        "❌ *Please provide an APK detail URL!*\n\n" +
+        "*Usage:* `.apkdl <url>`\n" +
+        "*Example:* `.apkdl https://apk4all.com/...`"
+      );
     }
 
-    const appName = arg.join(" ");
+    const targetUrl = arg[0];
 
     try {
-        repondre(`🔍 Searching for *${appName}* on Play Store...`);
+      await repondre("⏳ *Fetching APK download link, please wait...*");
 
-        // Using a reliable API for APK downloads
-        const searchUrl = `https://api.maher-zubair.tech/download/apk?id=${encodeURIComponent(appName)}`;
-        const response = await axios.get(searchUrl);
-        const data = response.data;
+      const response = await axios.get(
+        `https://apiskeith.top/download/apk?url=${encodeURIComponent(targetUrl)}`
+      );
 
-        if (!data || data.status !== 200) {
-            return repondre("Sorry, the app was not found or the server is busy.");
-        }
+      if (response.data && response.data.status) {
+        const result = response.data.result;
+        const downloadUrl = result.downloadUrl || result.url || result.link;
+        const appName = result.name || result.title || "APK File";
 
-        const appDetails = data.result;
-        const caption = `
-✨ *TIMNASA PLAYSTORE DOWNLOADER* ✨
+        let caption = `✅ *APK FOUND*\n\n`;
+        caption += `📱 *Name:* ${appName}\n`;
+        caption += `🔗 *Download Link:* ${downloadUrl}`;
 
-📦 *Name:* ${appDetails.name}
-🏢 *Developer:* ${appDetails.developer}
-⚖️ *Size:* ${appDetails.size}
-🕒 *Last Updated:* ${appDetails.lastUpdate}
-
-_Please wait, I am sending the APK file..._`;
-
-        // Send App Info and Icon
-        await zk.sendMessage(dest, { 
-            image: { url: appDetails.icon }, 
-            caption: caption 
-        }, { quoted: ms });
-
-        // Send the actual APK Document
-        await zk.sendMessage(dest, { 
-            document: { url: appDetails.downloadLink }, 
-            mimetype: "application/vnd.android.package-archive", 
-            fileName: `${appDetails.name}.apk` 
-        }, { quoted: ms });
-
-    } catch (e) {
-        console.log(e);
-        repondre("An error occurred while downloading the APK.");
+        return repondre(caption);
+      } else {
+        const errorMsg = response.data?.result || "Invalid or unsupported APK URL.";
+        return repondre(`❌ ${errorMsg}`);
+      }
+    } catch (error) {
+      console.error("APK Download Error:", error.message);
+      return repondre("❌ Failed to fetch the APK. Please check your URL and try again.");
     }
-});
+  }
+);
