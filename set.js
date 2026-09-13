@@ -22,6 +22,7 @@ module.exports = {
     // Mipangilio ya Bot
     BOT_NAME: process.env.BOT_NAME || 'MATELEE TMD',
     URL: process.env.BOT_MENU_LINKS || 'https://files.catbox.moe/ejm45q.jpg',
+    AUTO_AI: process.env.AUTO_AI || "no", 
     MODE: process.env.PUBLIC_MODE || "no",
     PM_PERMIT: process.env.PM_PERMIT || 'no',
     DP: process.env.STARTING_BOT_MESSAGE || "yes",
