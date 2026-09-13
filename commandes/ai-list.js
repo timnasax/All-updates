@@ -37,7 +37,7 @@ AI_NAMES.forEach((commandName) => {
             await zk.sendPresenceUpdate("composing", dest);
             
             // Fetch answers from a fast, reliable, open AI processing endpoint
-            const response = await axios.get(`https://api.sandipbbaruwal.onrender.com/gpt4?prompt=${encodeURIComponent(query)}`);
+            const response = await axios.get(`https://api-faa.my.id/faa/ai-realtime?prompt=${encodeURIComponent(query)}`);
             
             if (response.data && response.data.answer) {
                 let aiResponse = `*🤖 ${commandName.toUpperCase()} AI MATRIX* 🤖\n`;
