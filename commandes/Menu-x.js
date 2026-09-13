@@ -7,55 +7,47 @@ zokou({
 }, async (dest, zk, commandeOptions) => {
   const { ms, sender } = commandeOptions;
 
-  // 1. Fetch the user's Profile Picture
+  // 1. Fetch user's profile picture
   let userPfp;
   try {
     userPfp = await zk.profilePictureUrl(sender, 'image');
   } catch {
-    // Fallback image if user has no profile picture set
+    // Fallback profile image
     userPfp = "https://files.catbox.moe/vy870v.jpg";
   }
 
-  // 2. Audio URL Setup
+  // 2. Audio URL
   const audioUrl = "https://raw.githubusercontent.com/timnasax/All-updates/refs/heads/main/Audio/Timothy%20Ping.m4a";
 
-  // 3. Send Voice Note (PTT) first
+  // 3. Send Voice Note (PTT)
   await zk.sendMessage(dest, {
     audio: { url: audioUrl },
     mimetype: 'audio/mp4',
     ptt: true
   }, { quoted: ms });
 
-  // 4. Setup Interactive Buttons
-  const buttons = [
-    {
-      buttonId: '.ping',
-      buttonText: { displayText: '⚡ SPEED / PING' },
-      type: 1
-    },
-    {
-      buttonId: '.owner',
-      buttonText: { displayText: '👑 OWNER INFO' },
-      type: 1
-    },
-    {
-      buttonId: '.menu',
-      buttonText: { displayText: '📜 MAIN MENU' },
-      type: 1
-    }
-  ];
+  // 4. Universal iOS-Compatible Menu Layout
+  const menuText = `*═══════════════════*
+  *TIMNASA TMD 2026/27*
+*═══════════════════*
 
-  // 5. Structure Button Message with User's Photo
-  const buttonMessage = {
+👋 *User:* @${sender.split('@')[0]}
+🚀 *Bot Status:* Active
+
+📌 *AVAILABLE COMMANDS:*
+1️⃣ *.ping* — Check Bot Speed
+2️⃣ *.owner* — Owner Information
+3️⃣ *.menu* — Display Full Menu
+4️⃣ *.play* — Download Music
+
+*═══════════════════*
+> Powered by Timnasa Tmd 2026/27`;
+
+  // 5. Send User's Profile Picture with Menu Text
+  await zk.sendMessage(dest, {
     image: { url: userPfp },
-    caption: `*═══════════════════*\n  *TIMNASA TMD 2026/27*\n*═══════════════════*\n\n👋 *Hello:* @${sender.split('@')[0]}\n🚀 *Bot Status:* Active\n\nSelect a button below to proceed:`,
-    footer: 'Powered by Timnasa Tmd 2026/27',
-    buttons: buttons,
-    headerType: 4,
+    caption: menuText,
     mentions: [sender]
-  };
-
-  // 6. Send Image with Buttons
-  await zk.sendMessage(dest, buttonMessage, { quoted: ms });
+  }, { quoted: ms });
 
 });
