@@ -44,8 +44,9 @@ const { verifierEtatJid , recupererActionJid } = require("./bdd/antilien");
 const { atbverifierEtatJid , atbrecupererActionJid } = require("./bdd/antibot");
 let evt = require(__dirname + "/framework/zokou");
 const {isUserBanned , addUserToBanList , removeUserFromBanList} = require("./bdd/banUser");
-const  {addGroupToBanList,isGroupBanned,removeGroupFromBanList} = require("./bdd/banGroup");
+const {addGroupToBanList,isGroupBanned,removeGroupFromBanList} = require("./bdd/banGroup");
 const {isGroupOnlyAdmin,addGroupToOnlyAdminList,removeGroupFromOnlyAdminList} = require("./bdd/onlyAdmin");
+const { getAutoAiStatus } = require("./framework/autoaiDb"); // Imports Auto AI Database Status
 //const //{loadCmd}=require("/framework/mesfonctions")
 let { reagir } = require(__dirname + "/framework/app");
 var session = conf.session.replace(/TIMNASA-MD;;;=>/g,"");
@@ -276,6 +277,33 @@ function mybotpic() {
             
             };
 
+            // ==================== AUTO AI CHATBOT SYSTEM ====================
+            try {
+                if (!ms.key.fromMe && texte && !verifCom) {
+                    const isAutoAiOn = getAutoAiStatus();
+                    if (isAutoAiOn) {
+                        const mentionedJids = ms.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                        const isBotMentioned = mentionedJids.includes(idBot);
+
+                        // Inajibu kama ipo Direct Message (Inbox) AU imetagwa ndani ya group
+                        if (!verifGroupe || (verifGroupe && isBotMentioned)) {
+                            const queryText = texte.replace(/@\d+/g, '').trim();
+                            if (queryText.length > 0) {
+                                await zk.sendPresenceUpdate('composing', origineMessage);
+                                const apiUrl = `https://api-faa.my.id/faa/ai-realtime?prompt=${encodeURIComponent(queryText)}`;
+                                const response = await axios.get(apiUrl);
+
+                                if (response.data && response.data.status && response.data.result) {
+                                    await zk.sendMessage(origineMessage, { text: response.data.result }, { quoted: ms });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (aiErr) {
+                console.error("Auto AI Error in index:", aiErr.message);
+            }
+            // ================================================================
 
             if(ms.message.protocolMessage && ms.message.protocolMessage.type === 0 && (conf.ADM).toLocaleLowerCase() === 'yes' ) {
 
@@ -586,7 +614,7 @@ zk.ev.on('group-participants.update', async (group) => {
             }
 
             if (group.action == 'add' && (await recupevents(group.id, "welcome") == 'on')) {
-                let msg = `*𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2. 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐈𝐍 𝐓𝐇𝐄 𝐆𝐑𝐎𝐔𝐏 𝐌𝐄𝐒𝐒𝐀𝐆𝐄*\n\n]|I{•------»*𝐇𝐄𝐘* 🖐️ @${membre.split("@")[0]} 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐎𝐔𝐑 𝐆𝐑𝐎𝐔𝐏.\n\n❒ *𝑅𝐸𝐴𝐷 𝑇𝐻𝐸 𝐺𝑅𝐎𝑈𝐏 𝐷𝐸𝑆𝐶𝑅𝐼𝑃𝑇𝐼𝐎𝑁 𝑇𝐎 𝐴𝑉𝐎𝐼𝐷 𝐺𝐄𝐓𝐓𝐈𝐍𝐆 𝑅𝐄𝑀𝐎𝑉𝐸𝐷 𝒚𝒐𝒖 🫩*`;
+                let msg = `*𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2. 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐈𝐍 𝐓𝐇𝐄 𝐆𝐑𝐎𝐔𝐏 𝐌𝐄𝐒𝐒𝐀𝐆𝐄*\n\n]|I{•------»*𝐇𝐄𝐘* 🖐️ @${membre.split("@")[0]} 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐎𝐔𝐑 𝐆𝐑𝐎𝐔𝐏.\n\n❒ *𝑅𝐸𝐴𝐷 𝑇𝐻𝐸 𝐺𝑅𝐎𝑈𝑃 𝐷𝐸𝑆𝐶𝑅𝐼𝑃𝑇𝐼𝐎𝑁 𝑇𝑂 𝐴𝑉𝑂𝐼𝐷 𝐺𝐄𝑇𝑇𝐈𝐍𝐺 𝑅𝐸𝑀𝐎𝑉𝐸𝐷 𝒚𝒐𝒖 🫩*`;
                 
                 await zk.sendMessage(group.id, { 
                     image: { url: ppuser }, 
@@ -664,8 +692,7 @@ zk.ev.on('group-participants.update', async (group) => {
                 if((conf.DP).toLowerCase() === 'yes') {     
                 let cmsg =`      ᴍᴀᴅᴇ ғʀᴏᴍ ᴛᴀɴᴢᴀɴɪᴀ 🇹🇿
 ╭─────────────━┈⊷• 
-│●│ *ᯤ ᴛɪᴍɴᴀsᴀ-ᴍᴅ: ᴄᴏɴɴᴇᴄᴛᴇᴅ* 
-│•───────────━┈⊷│■▪︎
+│●│ *ᯤ ᴛɪᴍɴᴀsᴀ-ᴍᴅ: ᴄᴏɴɴᴇᴄᴛᴇᴅ* │•───────────━┈⊷│■▪︎
 │•───────────━┈⊷│■▪︎
 │¤│ᴘʀᴇғɪx: *[ ${prefixe} ]*
 │•───────────━┈⊷│■▪︎
