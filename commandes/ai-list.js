@@ -1,9 +1,9 @@
 const { zokou } = require('../framework/zokou');
 
 zokou({
-  nomCom: "100",
+  nomCom: "timnasa",
   categorie: "AI",
-  reaction: "💯"
+  reaction: "🤔"
 }, async (dest, zk, commandeOptions) => {
   const { ms, arg, repondre, prefixe } = commandeOptions;
   
@@ -12,7 +12,7 @@ zokou({
 
   // 1. Angalia kama mtumiaji ameweka swali au ujumbe
   if (!q) {
-    return repondre(`*Syntax Error*\nMfano:\n${prefixe}100 What day is today`);
+    return repondre(`*Syntax Error*\nMfano:\n${prefixe}timnasa What day is today`);
   }
 
   // 2. Kuandaa URL na ku-encode matini
