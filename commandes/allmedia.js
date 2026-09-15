@@ -1,128 +1,72 @@
-const {zokou} = require('../framework/zokou');
-const fs = require('fs');
-const getFBInfo = require("@xaviabot/fb-downloader");
+const { zokou } = require('../framework/zokou');
 const { default: axios } = require('axios');
 
-zokou({nomCom : "igdl" , categorie : "Download"},async (dest , zk , commandeOptions)=>{
-  const {ms,repondre,arg} = commandeOptions ;
-
-  let link = arg.join(' ')
-
-  if (!arg[0]) { repondre('Veillez insérer un lien video instagramme');return}; 
+// ==================== INSTAGRAM DOWNLOADER ====================
+zokou({ nomCom: "igdl", alias: ["ig", "instagram"], categorie: "Download", reaction: "📸" }, async (dest, zk, commandeOptions) => {
+  const { ms, repondre, arg } = commandeOptions;
+  if (!arg[0]) return repondre("Veillez insérer un lien video instagramme");
 
   try {
-     
-    let igvid = await axios('https://www.noobs-api.rf.gd/dipto/alldl?url='+link)
+    const link = arg.join(' ');
+    const res = await axios.get(`http://njabulo-ai.vercel.app/dl?url=${encodeURIComponent(link)}`);
+    const mediaUrl = res.data?.result?.downloadUrl || res.data?.downloadUrl || res.data?.url;
 
-    if (igvid.data.data.data[0].type == 'video') {
-    zk.sendMessage(dest,{video : {url : igvid.data.data.data[0].url},caption : "ig video downloader powered by *HACKING-Md*",gifPlayback : false },{quoted : ms}) 
-    }
-    else {
-        zk.sendMessage(dest,{image : {url : igvid.data.data.data[0].url},caption : "ig image downloader powered by *Zokou-Md*"})
-    }
-  
-  } catch (e) {repondre("erreur survenue lors du téléchargement \n " + e)}
-  
+    if (!mediaUrl) return repondre("❌ Imeshindikana kupata video ya Instagram. Hakikisha link ni sahihi.");
+
+    await zk.sendMessage(dest, { 
+      video: { url: mediaUrl }, 
+      caption: "Instagram Downloader powered by *Timnasa*" 
+    }, { quoted: ms });
+
+  } catch (e) {
+    repondre("Erreur lors du téléchargement: " + e.message);
+  }
 });
 
-
-zokou({
-  nomCom: "fbdl",
-  categorie: "Download",
-  reaction: "📽️"
-},
-async (dest, zk, commandeOptions) => {
+// ==================== FACEBOOK DOWNLOADER ====================
+zokou({ nomCom: "fbdl", alias: ["fb", "fbdl2"], categorie: "Download", reaction: "📽️" }, async (dest, zk, commandeOptions) => {
   const { repondre, ms, arg } = commandeOptions;
-
-  if (!arg[0]) {
-    repondre('Insert a public facebook video link!');
-    return;
-  }
-
-  const queryURL = arg.join(" ");
+  if (!arg[0]) return repondre("Insert a public facebook video link!");
 
   try {
-     getFBInfo(queryURL)
-    .then((result) => {
-       let caption = `
-        titre: ${result.title}
-        Lien: ${result.url}
-      `;
-       zk.sendMessage(dest,{image : { url : result.thumbnail}, caption : caption},{quoted : ms}) ;
-       zk.sendMessage(dest, { video: { url: result.hd  }, caption: 'facebook video downloader powered by *Timnasa*' }, { quoted: ms });
-      
-    })
-    .catch((error) => {console.log("Error:", error)
-                      repondre('try fbdl2 on this link')});
+    const queryURL = arg.join(" ");
+    const res = await axios.get(`http://njabulo-ai.vercel.app/dl?url=${encodeURIComponent(queryURL)}`);
+    const videoUrl = res.data?.result?.downloadUrl || res.data?.downloadUrl || res.data?.url;
+    const title = res.data?.result?.title || "Facebook Video";
 
+    if (!videoUrl) return repondre("❌ Imeshindikana kupata video ya Facebook.");
 
-   
+    await zk.sendMessage(dest, { 
+      video: { url: videoUrl }, 
+      caption: `📌 *Title:* ${title}\n\nFacebook video downloader powered by *Timnasa*` 
+    }, { quoted: ms });
+
   } catch (error) {
-    console.error('Erreur lors du téléchargement de la vidéo :', error);
-    repondre('Erreur lors du téléchargement de la vidéo.' , error);
+    console.error("FB Error:", error);
+    repondre("Erreur lors du téléchargement de la vidéo.");
   }
 });
 
-
-
-zokou({ nomCom: "tiktok", categorie: "Download", reaction: "🎵" }, async (dest, zk, commandeOptions) => {
-  const { arg, ms, prefixe,repondre } = commandeOptions;
-  if (!arg[0]) {
-    repondre(`how to use this command:\n ${prefixe}tiktok tiktok_video_link`);
-    return;
-  }
-
-  const videoUrl = arg.join(" ");
-
- let data = await axios.get('https://api.diioffc.web.id/api/download/instagram?url='+ videoUrl) ;
-
-  let tik = data.data.data
-
-      // Envoi du message avec le thumbnail de la vidéo
-      const caption = `
-Author: ${tik.author}
-Description: ${tik.desc}
-      `;
-
-         
-      zk.sendMessage(dest, { video: { url: tik.links[0].a} , caption : caption },{quoted : ms});    
-
-  
-});
-
-zokou({
-  nomCom: "fbdl2",
-  categorie: "Download",
-  reaction: "📽️"
-},
-async (dest, zk, commandeOptions) => {
-  const { repondre, ms, arg } = commandeOptions;
-
-  if (!arg[0]) {
-    repondre('Insert a public facebook video link! !');
-    return;
-  }
-
-  const queryURL = arg.join(" ");
+// ==================== TIKTOK DOWNLOADER ====================
+zokou({ nomCom: "tiktok", alias: ["tktok"], categorie: "Download", reaction: "🎵" }, async (dest, zk, commandeOptions) => {
+  const { arg, ms, prefixe, repondre } = commandeOptions;
+  if (!arg[0]) return repondre(`How to use this command:\n ${prefixe}tiktok <tiktok_video_link>`);
 
   try {
-     getFBInfo(queryURL)
-    .then((result) => {
-       let caption = `
-        titre: ${result.title}
-        Lien: ${result.url}
-      `;
-       zk.sendMessage(dest,{image : { url : result.thumbnail}, caption : caption},{quoted : ms}) ;
-       zk.sendMessage(dest, { video: { url: result.sd  }, caption: 'facebook video downloader powered by *HACKING-MD*' }, { quoted: ms });
-      
-    })
-    .catch((error) => {console.log("Error:", error)
-                      repondre(error)});
+    const videoUrl = arg.join(" ");
+    const res = await axios.get(`http://njabulo-ai.vercel.app/dl?url=${encodeURIComponent(videoUrl)}`);
+    const directMedia = res.data?.result?.downloadUrl || res.data?.downloadUrl || res.data?.url;
+    const title = res.data?.result?.title || "TikTok Video";
 
+    if (!directMedia) return repondre("❌ Imeshindikana kupata video ya TikTok.");
 
-   
+    await zk.sendMessage(dest, { 
+      video: { url: directMedia }, 
+      caption: `📌 *Description:* ${title}\n\nTikTok downloader powered by *Timnasa*` 
+    }, { quoted: ms });
+
   } catch (error) {
-    console.error('Erreur lors du téléchargement de la vidéo :', error);
-    repondre('Erreur lors du téléchargement de la vidéo.' , error);
+    console.error("TikTok Error:", error);
+    repondre("Erreur lors du téléchargement TikTok.");
   }
 });
