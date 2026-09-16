@@ -593,10 +593,22 @@ setTimeout(() => {
 
         const { recupevents } = require('./bdd/welcome'); 
 
+        // ===== WELCOME & GOODBIE MESSAGE ENGINE =====
         zk.ev.on('group-participants.update', async (group) => {
             try {
                 const metadata = await zk.groupMetadata(group.id);
+                let groupMembers = metadata.participants;
+                let groupName = metadata.subject;
                 let membres = group.participants;
+
+                // Function ya ku-generate Top 5 ranks
+                const getTopMembers = (members) => {
+                    const rankEmojis = ['🥇', '🥈', '🥉', '🏅', '🎖️'];
+                    const top5 = members.slice(0, 5);
+                    return top5.map((m, index) => {
+                        return `${rankEmojis[index]} *Rank ${index + 1}:* @${m.id.split('@')[0]}`;
+                    }).join('\n');
+                };
 
                 for (let membre of membres) {
                     let ppuser;
@@ -611,20 +623,23 @@ setTimeout(() => {
                     }
 
                     if (group.action == 'add' && (await recupevents(group.id, "welcome") == 'on')) {
-                        let msg = `*𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2. 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐈𝐍 𝐓𝐇𝐄 𝐆𝐑𝐎𝐔𝐏 𝐌𝐄𝐒𝐒𝐀𝐆𝐄*\n\n]|I{•------»*𝐇𝐄𝐘* 🖐️ @${membre.split("@")[0]} 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐎𝐔𝐑 𝐆𝐑𝐎𝐔𝐏.\n\n❒ *𝑅𝐸𝐴𝐷 𝑇𝐻𝐸 𝐺𝑅𝐎𝑈𝑃 𝐷𝐸𝑆𝐶𝑅𝐈𝑃𝑇𝐈𝐎𝐍 𝑇𝑂 𝐴𝑉𝑂𝐼𝐷 𝐺𝐄𝑇𝐓𝐈𝐍𝐺 𝑅𝐸𝑀𝐎𝑉𝐄𝐃 𝒚𝒐𝒖 🫩*`;
+                        let top5Jids = groupMembers.slice(0, 5).map(m => m.id);
+                        let allMentions = [...new Set([membre, ...top5Jids])];
+
+                        let welcomeMsg = `✨ *KARIBU KWENYE GROUP!* ✨\n\n👋 Habari @${membre.split("@")[0]}, karibu sana kwenye *${groupName}*!\n\n🎉 Tunakufurahia kujiunga nasi. Tafadhali soma na uzingatie sheria za group ili kudumisha amani na ustaarabu.\n\n📊 *TAKWIMU ZA GROUP:*\n👥 **Idadi ya Wajumbe:** ${groupMembers.length}\n\n🏆 *WAJUMBE 5 BORA (TOP 5 RANKS):*\n${getTopMembers(groupMembers)}\n\n> *Changia mada na uwe mstaarabu ili kupanda chati!* 🚀`;
                         
                         await zk.sendMessage(group.id, { 
                             image: { url: ppuser }, 
-                            caption: msg, 
-                            mentions: [membre] 
+                            caption: welcomeMsg, 
+                            mentions: allMentions 
                         });
 
                     } else if (group.action == 'remove' && (await recupevents(group.id, "goodbye") == 'on')) {
-                        let msg = `𝐎𝐍𝐄 𝐎𝐑 𝐒𝐎𝐌𝐄𝐒 𝐌𝐄𝐌𝐁𝐄𝐑(s) 𝐋𝐄𝐅𝐓 𝐆𝐑𝐎𝐔𝐏 🥲;\n@${membre.split("@")[0]}`;
+                        let goodbyeMsg = `👋 *KILA LA KHERI!* 👋\n\nAsee, @${membre.split("@")[0]} ameondoka au ametolewa kwenye group la *${groupName}*.\n\n✨ Tunamtakia kila la kheri huko aendako!\n\n📊 *TAKWIMU ZA GROUP:*\n👥 **Wajumbe Waliobaki:** ${groupMembers.length}\n\n> *Nafasi bado zipo wazi kwa watakaopenda kujiunga!* 🚀`;
                         
                         await zk.sendMessage(group.id, { 
                             image: { url: ppuser }, 
-                            caption: msg, 
+                            caption: goodbyeMsg, 
                             mentions: [membre] 
                         });
                     }
