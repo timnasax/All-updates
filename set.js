@@ -17,7 +17,7 @@ module.exports = {
     
     // Owner Details
     OWNER_NAME: process.env.OWNER_NAME || "Timnasa Tmd",
-    NUMERO_OWNER: process.env.NUMERO_OWNER || "255784766591",
+    NUMERO_OWNER: process.env.NUMERO_OWNER || "255724324566",
     NOM_OWNER: process.env.OWNER_NAME || "Timnasa Tmd",
     
     // Bot Configuration
