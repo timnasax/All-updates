@@ -11,29 +11,25 @@ zokou(
   async (dest, zk, commandeOptions) => {
     const { arg, repondre, superUser } = commandeOptions;
 
-    // Zuia wasio na mamlaka
+    // Restrict access to owner only
     if (!superUser) {
-      return repondre("❌ Command hii ni maalum kwa ajili ya Owner tu!");
+      return repondre("❌ This command is restricted to the bot owner only!");
     }
 
     if (!arg || arg.length < 2) {
       return repondre(
-        "❌ *Jinsi ya kutumia:*\n\n" +
-        "`.addgit <jina_la_faili.js> <code_ya_javascript>`\n\n" +
-        "*Mfano:*\n" +
+        "❌ *Usage:*\n\n" +
+        "`.addgit <filename.js> <javascript_code>`\n\n" +
+        "*Example:*\n" +
         "`.addgit test.js const { zokou } = require('../framework/zokou'); zokou({nomCom:'test'}, async(dest, zk, opt) => { opt.repondre('Hello'); });`"
       );
     }
 
-    // Mpangilio wa GitHub Repository
-    const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Weka GitHub Personal Access Token kwenye set.js au env
+    // GitHub Repository Configuration
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "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";
     const REPO_OWNER = "timnasax";
     const REPO_NAME = "all-updates";
-    const BRANCH = "main"; // Au 'master' kutokana na tawi la repo yako
-
-    if (!GITHUB_TOKEN) {
-      return repondre("⚠️ *GITHUB_TOKEN haijapatikana!* Weka Token yako kwenye Environment Variables (env) au set.js.");
-    }
+    const BRANCH = "main"; // Or 'master' depending on your repository default branch
 
     const filename = arg[0].endsWith(".js") ? arg[0] : `${arg[0]}.js`;
     const codeContent = arg.slice(1).join(" ");
@@ -41,9 +37,9 @@ zokou(
     const githubApiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
 
     try {
-      await repondre(`⏳ *Inapakia faili \`${filename}\` kwenda GitHub (${REPO_OWNER}/${REPO_NAME})...*`);
+      await repondre(`⏳ *Uploading \`${filename}\` to GitHub (${REPO_OWNER}/${REPO_NAME})...*`);
 
-      // 1. Angalia kama faili tayari lipo kwenye GitHub ili kupata SHA yake (kwa ajili ya ku-update)
+      // 1. Check if the file already exists on GitHub to retrieve its SHA (required for updating)
       let sha = null;
       try {
         const checkFile = await axios.get(githubApiUrl, {
@@ -51,13 +47,13 @@ zokou(
         });
         sha = checkFile.data.sha;
       } catch (err) {
-        // Faili halipo, litaundwa upya
+        // File does not exist yet; it will be created as a new file
       }
 
-      // 2. Badilisha code kuwa mfumo wa Base64 (Hitaji la GitHub API)
+      // 2. Encode the source code to Base64 (GitHub API requirement)
       const contentEncoded = Buffer.from(codeContent).toString("base64");
 
-      // 3. Tuma commit kwenda GitHub
+      // 3. Send commit request to GitHub API
       const payload = {
         message: `Add/Update command: ${filename} via WhatsApp Bot`,
         content: contentEncoded,
@@ -73,16 +69,16 @@ zokou(
       });
 
       return repondre(
-        `✅ *FAILI LIMEWEKWA KWENYE GITHUB!*\n\n` +
-        `📌 *Repo:* \`${REPO_OWNER}/${REPO_NAME}\`\n` +
-        `📁 *Njia:* \`${filePath}\`\n` +
+        `✅ *FILE SUCCESSFULLY ADDED TO GITHUB!*\n\n` +
+        `📌 *Repository:* \`${REPO_OWNER}/${REPO_NAME}\`\n` +
+        `📁 *Path:* \`${filePath}\`\n` +
         `🔗 *Link:* https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${BRANCH}/${filePath}`
       );
 
     } catch (error) {
       console.error("GitHub Push Error:", error.response?.data || error.message);
       const errMsg = error.response?.data?.message || error.message;
-      return repondre(`❌ *Imeshindikana kuweka kwenye GitHub:* ${errMsg}`);
+      return repondre(`❌ *Failed to push to GitHub:* ${errMsg}`);
     }
   }
 );
