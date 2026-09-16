@@ -34,7 +34,7 @@
     },
     "GITHUB_TOKEN": {
       "description": "GitHub Personal Access Token for remote command updates",
-      "value": "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",
+      "value": "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",
       "required": false
     },
     "BOT_MENU_LINKS": {
