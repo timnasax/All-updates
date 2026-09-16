@@ -1,52 +1,40 @@
 const { zokou } = require("../framework/zokou");
-const conf = require("../set");
+const fs = require("fs");
+const path = require("path");
 
-zokou({
+zokou(
+  {
     nomCom: "chatbot",
-    reaction: "🤖",
-    categorie: "Settings"
-}, async (dest, zk, reponse) => {
-    const { ms, arg, superUser, verifAdmin } = reponse;
-    const channelJid = "120363406146813524@newsletter";
+    categorie: "AI",
+    reaction: "🤖"
+  },
+  async (dest, zk, commandeOptions) => {
+    const { repondre, arg, auteurMessage } = commandeOptions;
 
-    // Permissions Check
-    if (!superUser && !verifAdmin) {
-        return zk.sendMessage(dest, { text: "❌ This command is restricted to Admins/Owner only!" }, { quoted: ms });
+    const dataDir = path.join(__dirname, "../data");
+    const chatbotFile = path.join(dataDir, "chatbot.json");
+
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    if (!arg[0]) {
-        const status = conf.CHATBOT === "on" ? "ENABLED ✅" : "DISABLED ❌";
-        return zk.sendMessage(dest, { 
-            text: `*TIMNASA-TMD1 CHATBOT SETTINGS*\n\n` +
-                 `Current Status: *${status}*\n\n` +
-                 `*Commands:*\n` +
-                 `🔹 *.chatbot on* - Turn on auto-reply\n` +
-                 `🔹 *.chatbot off* - Turn off auto-reply\n\n` +
-                 `📢 *Official Channel:* \nhttps://whatsapp.com/channel/0029VaF39946H4YhS6u8Yt3q\n` +
-                 `*ID:* ${channelJid}`
-        }, { quoted: ms });
+    if (!fs.existsSync(chatbotFile)) {
+      fs.writeFileSync(chatbotFile, JSON.stringify({}), "utf8");
     }
 
-    if (arg[0].toLowerCase() === "on") {
-        conf.CHATBOT = "on";
-        await zk.sendMessage(dest, { text: "✅ *Chatbot is now ON!* It will now respond with typing/recording effects." }, { quoted: ms });
-        
-        // Show Channel Card
-        await zk.sendMessage(dest, { 
-            text: "Follow our official channel for updates:",
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: channelJid,
-                    newsletterName: "Timnasa Official Updates",
-                    serverMessageId: 1
-                }
-            }
-        });
+    const action = arg[0] ? arg[0].toLowerCase() : "";
+    let chatbotData = JSON.parse(fs.readFileSync(chatbotFile, "utf8"));
 
-    } else if (arg[0].toLowerCase() === "off") {
-        conf.CHATBOT = "off";
-        await zk.sendMessage(dest, { text: "❌ *Chatbot is now OFF!*" }, { quoted: ms });
+    if (action === "on") {
+      chatbotData[auteurMessage] = true;
+      fs.writeFileSync(chatbotFile, JSON.stringify(chatbotData, null, 2));
+      return repondre("✅ Auto-Chatbot has been enabled for your chats!");
+    } else if (action === "off") {
+      chatbotData[auteurMessage] = false;
+      fs.writeFileSync(chatbotFile, JSON.stringify(chatbotData, null, 2));
+      return repondre("❌ Auto-Chatbot has been disabled!");
+    } else {
+      return repondre("Usage:\n*.chatbot on* - Enable chatbot\n*.chatbot off* - Disable chatbot");
     }
-});
+  }
+);
