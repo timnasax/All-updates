@@ -54,6 +54,9 @@ const prefixe = conf.PREFIXE;
 const more = String.fromCharCode(8206);
 const readmore = more.repeat(4001);
 
+// Global status ya Chatbot-Pro (Default: Off)
+global.chatbotProStatus = false;
+
 async function authentification() {
     try {
         if (!fs.existsSync(__dirname + "/auth/creds.json")) {
@@ -79,6 +82,28 @@ const store = (0, baileys_1.makeInMemoryStore)({
 function getCurrentDateTime() {
     const now = new Date();
     return now.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' });
+}
+
+// Function ya Chatbot-Pro
+async function handleChatbotPro(zk, ms, origineMessage, texte, verifCom) {
+    try {
+        if (!global.chatbotProStatus) return;
+        if (ms.key.fromMe) return;
+        if (!texte || verifCom || texte.startsWith('.') || texte.startsWith('!') || texte.startsWith('/')) return;
+
+        // Reaction ya kuonyesha mfumo unafanya kazi
+        await zk.sendMessage(origineMessage, { react: { text: "🧠", key: ms.key } });
+
+        const response = await axios.get(`https://api-faa.my.id/faa/ai-realtime?text=${encodeURIComponent(texte)}`, { timeout: 10000 });
+        
+        const aiMessage = response.data?.result || response.data?.response || response.data?.message;
+
+        if (aiMessage) {
+            await zk.sendMessage(origineMessage, { text: aiMessage }, { quoted: ms });
+        }
+    } catch (error) {
+        console.error("Chatbot-Pro Error:", error.message);
+    }
 }
 
 setTimeout(() => {
@@ -326,6 +351,9 @@ setTimeout(() => {
                 ms,
                 mybotpic
             };
+
+            // ===== CHATBOT-PRO EXECUTION =====
+            await handleChatbotPro(zk, ms, origineMessage, texte, verifCom);
 
             // ===== CHATBOT AUTO-RESPONSE LOGIC =====
             if (!verifGroupe && texte && !verifCom && !ms.key.fromMe) {
