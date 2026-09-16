@@ -277,43 +277,20 @@ function mybotpic() {
             
             };
 
-            // ==================== AUTO AI CHATBOT SYSTEM ====================
-            try {
-                if (!ms.key.fromMe && texte && !verifCom) {
-                    const isAutoAiOn = getAutoAiStatus();
-                    if (isAutoAiOn) {
-                        const mentionedJids = ms.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-                        const isBotMentioned = mentionedJids.includes(idBot);
-
-                        // Inajibu kama ipo Direct Message (Inbox) AU imetagwa ndani ya group
-                        if (!verifGroupe || (verifGroupe && isBotMentioned)) {
-                            const queryText = texte.replace(/@\d+/g, '').trim();
-                            if (queryText.length > 0) {
-                                await zk.sendPresenceUpdate('composing', origineMessage);
-                                const apiUrl = `https://api-faa.my.id/faa/ai-realtime?prompt=${encodeURIComponent(queryText)}`;
-                                const response = await axios.get(apiUrl);
-
-                                if (response.data && response.data.status && response.data.result) {
-                                    await zk.sendMessage(origineMessage, { text: response.data.result }, { quoted: ms });
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (aiErr) {
-                console.error("Auto AI Error in index:", aiErr.message);
-            }
-
-            // Chatbot auto-response logic
+         }
+          
+// Chatbot auto-response logic
 if (!verifGroupe && texte && !verifCom && !ms.key.fromMe) {
     try {
         const chatbotFile = path.join(__dirname, "data/chatbot.json");
+        
         if (fs.existsSync(chatbotFile)) {
             const chatbotData = JSON.parse(fs.readFileSync(chatbotFile, "utf8"));
+            
+            // Check formatted user ID
             const isChatbotEnabled = chatbotData[auteurMessage] || false;
 
             if (isChatbotEnabled) {
-                // Rate limiting (3-second delay to prevent spam)
                 const currentTime = Date.now();
                 if (!global.lastChatbotResponse) global.lastChatbotResponse = {};
                 if (!global.lastChatbotResponse[auteurMessage]) global.lastChatbotResponse[auteurMessage] = 0;
@@ -325,25 +302,28 @@ if (!verifGroupe && texte && !verifCom && !ms.key.fromMe) {
                     return; 
                 }
 
-                // Fetch GPT API response
+                // API Request
                 const response = await axios.get("https://apis-keith.vercel.app/ai/gpt", {
                     params: { q: texte },
                     timeout: 10000,
                 });
 
-                if (response.data?.status && response.data?.result) {
+                if (response.data && response.data.result) {
                     const gptResponse = response.data.result;
                     await zk.sendMessage(origineMessage, { text: gptResponse }, { quoted: ms });
-
                     global.lastChatbotResponse[auteurMessage] = currentTime;
-                    return; 
+                } else {
+                    console.log("API response missing result:", response.data);
                 }
             }
+        } else {
+            console.log("chatbot.json file does not exist at:", chatbotFile);
         }
     } catch (error) {
-        console.error("Chatbot error:", error.message);
+        console.error("Chatbot Error Detail:", error.message);
     }
 }
+
 
             // ================================================================
 
