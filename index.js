@@ -593,12 +593,13 @@ setTimeout(() => {
 
         const { recupevents } = require('./bdd/welcome'); 
 
-        // ===== WELCOME & GOODBIE MESSAGE ENGINE =====
+        // ===== WELCOME & GOODBYE MESSAGE ENGINE =====
         zk.ev.on('group-participants.update', async (group) => {
             try {
                 const metadata = await zk.groupMetadata(group.id);
                 let groupMembers = metadata.participants;
                 let groupName = metadata.subject;
+                let groupDesc = metadata.desc ? metadata.desc.toString() : "Hakuna maelezo yaliyowekwa kwenye group hili.";
                 let membres = group.participants;
 
                 // Function ya ku-generate Top 5 ranks
@@ -611,14 +612,17 @@ setTimeout(() => {
                 };
 
                 for (let membre of membres) {
-                    let ppuser;
+                    let targetPic;
+                    // Inajaribu kuchukua Picha ya Mlengwa (Anayejoin/Anayeondoka) kwanza
                     try {
-                        ppuser = await zk.profilePictureUrl(membre, 'image');
+                        targetPic = await zk.profilePictureUrl(membre, 'image');
                     } catch {
+                        // Kama mhusika hana picha, inachukua picha ya Group
                         try {
-                            ppuser = await zk.profilePictureUrl(group.id, 'image');
+                            targetPic = await zk.profilePictureUrl(group.id, 'image');
                         } catch {
-                            ppuser = 'https://telegra.ph/file/default-profile-pic.jpg'; 
+                            // Kama na group halina picha, inatumia picha ya default
+                            targetPic = 'https://telegra.ph/file/default-profile-pic.jpg'; 
                         }
                     }
 
@@ -626,19 +630,19 @@ setTimeout(() => {
                         let top5Jids = groupMembers.slice(0, 5).map(m => m.id);
                         let allMentions = [...new Set([membre, ...top5Jids])];
 
-                        let welcomeMsg = `✨ *KARIBU KWENYE GROUP!* ✨\n\n👋 Habari @${membre.split("@")[0]}, karibu sana kwenye *${groupName}*!\n\n🎉 Tunakufurahia kujiunga nasi. Tafadhali soma na uzingatie sheria za group ili kudumisha amani na ustaarabu.\n\n📊 *TAKWIMU ZA GROUP:*\n👥 **Idadi ya Wajumbe:** ${groupMembers.length}\n\n🏆 *WAJUMBE 5 BORA (TOP 5 RANKS):*\n${getTopMembers(groupMembers)}\n\n> *Changia mada na uwe mstaarabu ili kupanda chati!* 🚀`;
+                        let welcomeMsg = `✨ *KARIBU KWENYE GROUP!* ✨\n\n👋 Habari @${membre.split("@")[0]}, karibu sana kwenye *${groupName}*!\n\n📝 *MAELEZO YA GROUP (DESCRIPTION):*\n${groupDesc}\n\n📊 *TAKWIMU ZA GROUP:*\n👥 **Idadi ya Wajumbe:** ${groupMembers.length}\n\n🏆 *WAJUMBE 5 BORA (TOP 5 RANKS):*\n${getTopMembers(groupMembers)}\n\n> *Changia mada na uwe mstaarabu ili kupanda chati!* 🚀`;
                         
                         await zk.sendMessage(group.id, { 
-                            image: { url: ppuser }, 
+                            image: { url: targetPic }, 
                             caption: welcomeMsg, 
                             mentions: allMentions 
                         });
 
                     } else if (group.action == 'remove' && (await recupevents(group.id, "goodbye") == 'on')) {
-                        let goodbyeMsg = `👋 *KILA LA KHERI!* 👋\n\nAsee, @${membre.split("@")[0]} ameondoka au ametolewa kwenye group la *${groupName}*.\n\n✨ Tunamtakia kila la kheri huko aendako!\n\n📊 *TAKWIMU ZA GROUP:*\n👥 **Wajumbe Waliobaki:** ${groupMembers.length}\n\n> *Nafasi bado zipo wazi kwa watakaopenda kujiunga!* 🚀`;
+                        let goodbyeMsg = `👋 *KILA LA KHERI!* 👋\n\nAsee, @${membre.split("@")[0]} ameondoka au ametolewa kwenye group la *${groupName}*.\n\n📝 *MAELEZO YA GROUP (DESCRIPTION):*\n${groupDesc}\n\n📊 *TAKWIMU ZA GROUP:*\n👥 **Wajumbe Waliobaki:** ${groupMembers.length}\n\n> *Nafasi bado zipo wazi kwa watakaopenda kujiunga!* 🚀`;
                         
                         await zk.sendMessage(group.id, { 
-                            image: { url: ppuser }, 
+                            image: { url: targetPic }, 
                             caption: goodbyeMsg, 
                             mentions: [membre] 
                         });
