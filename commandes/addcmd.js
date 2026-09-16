@@ -26,7 +26,7 @@ zokou(
     }
 
     // GitHub Repository Configuration
-    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "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";
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "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";
     const REPO_OWNER = "timnasax";
     const REPO_NAME = "all-updates";
     const BRANCH = "main"; // Or 'master' depending on your repository default branch
