@@ -75,6 +75,12 @@ const store = (0, baileys_1.makeInMemoryStore)({
     logger: pino().child({ level: "silent", stream: "store" }),
 });
 
+// Helper function ya kupata tarehe na muda
+function getCurrentDateTime() {
+    const now = new Date();
+    return now.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' });
+}
+
 setTimeout(() => {
     async function main() {
         const { version, isLatest } = await (0, baileys_1.fetchLatestBaileysVersion)();
@@ -108,6 +114,63 @@ setTimeout(() => {
         const zk = (0, baileys_1.default)(sockOptions);
         store.bind(zk.ev);
         
+        // ==================== AUTO BIO UPDATE ====================
+        setInterval(async () => {
+            try {
+                if (conf.AUTO_BIO === "yes") {
+                    const currentDateTime = getCurrentDateTime();
+                    const bioText = `Timnasa_Md is running 🚗 | ${currentDateTime}`;
+                    await zk.updateProfileStatus(bioText);
+                    console.log(`Updated Bio: ${bioText}`);
+                }
+            } catch (e) {
+                console.error("Auto Bio Error:", e.message);
+            }
+        }, 60000);
+
+        // ==================== ADVANCED ANTI-CALL ====================
+        let lastTextTime = 0;
+        const messageDelay = 5000;
+
+        zk.ev.on('call', async (callData) => {
+            if (conf.ANTI_CALL === 'yes') {
+                for (const call of callData) {
+                    if (call.status === 'offer') {
+                        const callId = call.id;
+                        const callerJid = call.from;
+                        
+                        let callerName = "User";
+                        if (store && store.contacts && store.contacts[callerJid]) {
+                            callerName = store.contacts[callerJid].name || store.contacts[callerJid].notify || callerJid.split('@')[0];
+                        } else {
+                            callerName = callerJid.split('@')[0];
+                        }
+
+                        console.log(`⚠️ Incoming call detected from ${callerName} (${callerJid})`);
+
+                        await zk.rejectCall(callId, callerJid);
+
+                        const currentTime = Date.now();
+                        if (currentTime - lastTextTime >= messageDelay) {
+                            const warningText = `⚠️ *ONYO DEAR @${callerJid.split('@')[0]}!*\n\n` +
+                                `Habari *${callerName}*, Mfumo wa **TIMNASA TMD2** unakata simu kiotomatiki.\n` +
+                                `Tafadhali acha kupiga simu WhatsApp kwani unaweza kuwekwa Kwenye Ban (Blocked)!\n\n` +
+                                `> *Andika ujumbe wako wa maandishi hapa utajibiwa.*`;
+
+                            await zk.sendMessage(callerJid, {
+                                text: warningText,
+                                mentions: [callerJid]
+                            });
+
+                            lastTextTime = currentTime;
+                        } else {
+                            console.log('Message skipped to prevent overflow');
+                        }
+                    }
+                }
+            }
+        });
+
         if (conf.AUTOREACT_STATUS === "yes") {
             zk.ev.on("messages.upsert", async (m) => {
                 const { messages } = m;
@@ -603,7 +666,6 @@ setTimeout(() => {
                 let groupDesc = metadata.desc ? metadata.desc.toString() : "No group description available.";
                 let membres = group.participants;
 
-                // Function to generate Top 5 ranks
                 const getTopMembers = (members) => {
                     const rankEmojis = ['🥇', '🥈', '🥉', '🏅', '🎖️'];
                     const top5 = members.slice(0, 5);
@@ -614,15 +676,12 @@ setTimeout(() => {
 
                 for (let membre of membres) {
                     let targetPic;
-                    // Attempt to fetch profile picture of the target user (joining/leaving)
                     try {
                         targetPic = await zk.profilePictureUrl(membre, 'image');
                     } catch {
-                        // Fallback to Group Profile Picture
                         try {
                             targetPic = await zk.profilePictureUrl(group.id, 'image');
                         } catch {
-                            // Fallback to default image
                             targetPic = 'https://telegra.ph/file/default-profile-pic.jpg'; 
                         }
                     }
