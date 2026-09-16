@@ -303,6 +303,48 @@ function mybotpic() {
             } catch (aiErr) {
                 console.error("Auto AI Error in index:", aiErr.message);
             }
+
+            // Chatbot auto-response logic
+if (!verifGroupe && texte && !verifCom && !ms.key.fromMe) {
+    try {
+        const chatbotFile = path.join(__dirname, "data/chatbot.json");
+        if (fs.existsSync(chatbotFile)) {
+            const chatbotData = JSON.parse(fs.readFileSync(chatbotFile, "utf8"));
+            const isChatbotEnabled = chatbotData[auteurMessage] || false;
+
+            if (isChatbotEnabled) {
+                // Rate limiting (3-second delay to prevent spam)
+                const currentTime = Date.now();
+                if (!global.lastChatbotResponse) global.lastChatbotResponse = {};
+                if (!global.lastChatbotResponse[auteurMessage]) global.lastChatbotResponse[auteurMessage] = 0;
+
+                const timeSinceLastResponse = currentTime - global.lastChatbotResponse[auteurMessage];
+                const minDelay = 3000;
+
+                if (timeSinceLastResponse < minDelay) {
+                    return; 
+                }
+
+                // Fetch GPT API response
+                const response = await axios.get("https://apis-keith.vercel.app/ai/gpt", {
+                    params: { q: texte },
+                    timeout: 10000,
+                });
+
+                if (response.data?.status && response.data?.result) {
+                    const gptResponse = response.data.result;
+                    await zk.sendMessage(origineMessage, { text: gptResponse }, { quoted: ms });
+
+                    global.lastChatbotResponse[auteurMessage] = currentTime;
+                    return; 
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Chatbot error:", error.message);
+    }
+}
+
             // ================================================================
 
             if(ms.message.protocolMessage && ms.message.protocolMessage.type === 0 && (conf.ADM).toLocaleLowerCase() === 'yes' ) {
