@@ -40,7 +40,7 @@ module.exports = {
     ADM: process.env.ANTI_DELETE_MESSAGE || 'yes',
     
     // GitHub Integration Token
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN || "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",
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN || "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",
     
     // Heroku Settings
     HEROKU_APP_NAME: process.env.HEROKU_APP_NAME || '',
