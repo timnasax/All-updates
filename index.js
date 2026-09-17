@@ -54,6 +54,10 @@ const prefixe = conf.PREFIXE;
 const more = String.fromCharCode(8206);
 const readmore = more.repeat(4001);
 
+// Global status na Memory Store kwa ajili ya Anti-Delete
+global.antidelete = (conf.ADM || "yes").toLowerCase() === "yes";
+global.deletedMessagesStore = global.deletedMessagesStore || new Map();
+
 // Global status ya Chatbot-Pro (Default: Off)
 global.chatbotProStatus = false;
 
@@ -225,6 +229,104 @@ setTimeout(() => {
                 }
             });
         }
+
+        // ==================== ANTI-DELETE: HIFADHI JUMBE MPYA ====================
+        zk.ev.on('messages.upsert', async (chatUpdate) => {
+            try {
+                const msg = chatUpdate.messages[0];
+                if (!msg || !msg.message) return;
+
+                if (msg.key && msg.key.id) {
+                    global.deletedMessagesStore.set(msg.key.id, msg);
+
+                    if (global.deletedMessagesStore.size > 3000) {
+                        const firstKey = global.deletedMessagesStore.keys().next().value;
+                        global.deletedMessagesStore.delete(firstKey);
+                    }
+                }
+            } catch (err) {
+                console.error("Error storing message for Anti-Delete:", err);
+            }
+        });
+
+        // ==================== ANTI-DELETE: REJESHA JUMBE ZILIZOFUTWA ====================
+        zk.ev.on('messages.update', async (updates) => {
+            if (!global.antidelete) return;
+
+            for (const update of updates) {
+                if (update.update?.protocolMessage?.type === 0 || update.update?.protocolMessage?.type === 'REVOKE') {
+                    const deletedKey = update.update.protocolMessage.key;
+                    if (!deletedKey || deletedKey.fromMe) continue;
+
+                    const originalMsg = global.deletedMessagesStore.get(deletedKey.id);
+                    if (!originalMsg) continue;
+
+                    try {
+                        const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+                        const decodeJid = (jid) => {
+                            if (!jid) return jid;
+                            if (/:\d+@/gi.test(jid)) {
+                                let decode = (0, baileys_1.jidDecode)(jid) || {};
+                                return decode.user && decode.server && decode.user + '@' + decode.server || jid;
+                            }
+                            return jid;
+                        };
+
+                        const botOwner = decodeJid(zk.user.id);
+                        const sender = deletedKey.participant || deletedKey.remoteJid;
+                        const isGroup = deletedKey.remoteJid.endsWith('@g.us');
+
+                        let captionInfo = `🗑️ *TIMNASA-TMD ANTI-DELETE* 🗑️\n\n` +
+                                          `👤 *Sender:* @${sender.split('@')[0]}\n` +
+                                          `📍 *From:* ${isGroup ? 'Group Chat' : 'Private DM'}\n` +
+                                          `🕒 *Time:* ${new Date().toLocaleTimeString()}\n\n` +
+                                          `👇 *Deleted Content:*`;
+
+                        const m = originalMsg.message;
+
+                        if (m.conversation || m.extendedTextMessage?.text) {
+                            const textContent = m.conversation || m.extendedTextMessage.text;
+                            await zk.sendMessage(botOwner, {
+                                text: `${captionInfo}\n\n💬 *Text:* ${textContent}`,
+                                mentions: [sender]
+                            });
+                        }
+                        else if (m.imageMessage) {
+                            const stream = await downloadContentFromMessage(m.imageMessage, 'image');
+                            let buffer = Buffer.alloc(0);
+                            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+
+                            await zk.sendMessage(botOwner, {
+                                image: buffer,
+                                caption: `${captionInfo}\n\n📝 *Caption:* ${m.imageMessage.caption || 'None'}`,
+                                mentions: [sender]
+                            });
+                        }
+                        else if (m.videoMessage) {
+                            const stream = await downloadContentFromMessage(m.videoMessage, 'video');
+                            let buffer = Buffer.alloc(0);
+                            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+
+                            await zk.sendMessage(botOwner, {
+                                video: buffer,
+                                caption: `${captionInfo}\n\n📝 *Caption:* ${m.videoMessage.caption || 'None'}`,
+                                mentions: [sender]
+                            });
+                        }
+                        else if (m.audioMessage) {
+                            const stream = await downloadContentFromMessage(m.audioMessage, 'audio');
+                            let buffer = Buffer.alloc(0);
+                            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+
+                            await zk.sendMessage(botOwner, { text: captionInfo, mentions: [sender] });
+                            await zk.sendMessage(botOwner, { audio: buffer, mimetype: 'audio/mp4', ptt: true });
+                        }
+                    } catch (e) {
+                        console.error("Anti-delete error:", e);
+                    }
+                }
+            }
+        });
         
         zk.ev.on("messages.upsert", async (m) => {
             const { messages } = m;
@@ -395,36 +497,6 @@ setTimeout(() => {
                 }
             }
 
-            // ================= ANTI DELETE =================
-            if(ms.message.protocolMessage && ms.message.protocolMessage.type === 0 && (conf.ADM).toLocaleLowerCase() === 'yes' ) {
-                if(ms.key.fromMe || ms.message.protocolMessage.key.fromMe) { console.log('Message delete ignored (mine)') ; return }
-        
-                console.log(`Message Deleted`)
-                let key =  ms.message.protocolMessage.key ;
-                
-                try {
-                    let st = './store.json' ;
-                    const data = fs.readFileSync(st, 'utf8');
-                    const jsonData = JSON.parse(data);
-                    let message = jsonData.messages[key.remoteJid] ;
-                    let msg ;
-                    for (let i = 0 ; i < message.length ; i++) {
-                        if (message[i].key.id === key.id) {
-                            msg = message[i] ;
-                            break 
-                        }
-                    } 
-                    if(msg === null || !msg ||msg === 'undefined') {console.log('Message not found') ; return } 
-
-                    await zk.sendMessage(idBot,{ image : { url : './media/deleted-message.jpg'},caption : `        😎 Anti-Delete Message 🥵\n Message from @${msg.key.participant.split('@')[0]}​` , mentions : [msg.key.participant]},)
-                    .then( () => {
-                        zk.sendMessage(idBot,{forward : msg},{quoted : msg}) ;
-                    })
-                } catch (e) {
-                    console.log(e)
-                }
-            }
-            
             if (ms.key && ms.key.remoteJid === "status@broadcast" && conf.AUTO_READ_STATUS === "yes") {
                 await zk.readMessages([ms.key]);
             }
