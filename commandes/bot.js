@@ -91,14 +91,14 @@ zokou({
     handleAiCommand(dest, zk, commandeOptions, "📌 *.chat <message>*\n\nExample: .chat Hello, how are you?");
 });
 
-// 3. njabulo command
+// 3. Timnasa Tmd Ai command
 zokou({
-    nomCom: "timothy",
-    alias: ["njabulomd", "njabulbot", "njab"],
+    nomCom: "timothy45",
+    alias: ["timnasatmdai", "timnasabot", "timnasa"],
     reaction: '👑',
     categorie: "AI"
 }, async (dest, zk, commandeOptions) => {
-    handleAiCommand(dest, zk, commandeOptions, "📌 *.njabulo <message>*\n\nExample: .njabulo Who are you?");
+    handleAiCommand(dest, zk, commandeOptions, "📌 *.timothy45 <message>*\n\nExample: .timothy45 Who are you?");
 });
 
 // 4. gpt command
