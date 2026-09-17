@@ -1,106 +1,130 @@
-const { zokou } = require("../framework/zokou");
-const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+const { zokou } = require('../framework/zokou');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
-/**
- * VV Command - Sends recovered media to the current chat with Channel JID info.
- */
-zokou({ nomCom: "vv", aliases: ["send", "keep"], categorie: "General" }, async (dest, zk, commandeOptions) => {
-  const { repondre, msgRepondu, ms } = commandeOptions;
-
-  if (!msgRepondu) {
-    return repondre('Please reply to a View Once (VV) message or any media to save it.');
-  }
-
-  const channelJid = "120363406146813524@newsletter";
+// Command: .vv (Sends unlocked media directly to the current chat)
+zokou({
+  nomCom: "open",
+  categorie: "General",
+  reaction: "🔓"
+}, async (dest, zk, commandeOptions) => {
+  const { ms, repondre, msgRepondu } = commandeOptions;
 
   try {
-    let msg = {};
-    const contextInfo = {
-      forwardingScore: 999,
-      isForwarded: true,
-      forwardedNewsletterMessageInfo: {
-        newsletterJid: channelJid,
-        newsletterName: "𝚃𝙸𝙼𝙽𝙰𝚂𝙰 𝚃𝙼𝙳 𝙿𝚁𝙾𝚃𝙴𝙲𝚃𝙸𝙾𝙽",
-        serverMessageId: 1
-      }
-    };
-
-    if (msgRepondu.imageMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.imageMessage);
-      msg = { image: { url: media }, caption: msgRepondu.imageMessage.caption, contextInfo };
-    } else if (msgRepondu.videoMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.videoMessage);
-      msg = { video: { url: media }, caption: msgRepondu.videoMessage.caption, contextInfo };
-    } else if (msgRepondu.audioMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.audioMessage);
-      msg = { audio: { url: media }, mimetype: 'audio/mp4', contextInfo };
-    } else if (msgRepondu.stickerMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.stickerMessage);
-      const stickerMess = new Sticker(media, {
-        pack: '𝚃𝙸𝙼𝙽𝙰𝚂𝙰 𝚃𝙼𝙳',
-        author: 'Timoth',
-        type: StickerTypes.FULL,
-        quality: 70,
-      });
-      msg = { sticker: await stickerMess.toBuffer() };
-    } else {
-      msg = { text: msgRepondu.conversation || "No text content found.", contextInfo };
+    if (!msgRepondu) {
+      return repondre("⚠️ *Please reply to a View Once message (Image or Video).*");
     }
 
-    await zk.sendMessage(dest, msg, { quoted: ms });
+    let viewOnceMsg = null;
+    let mediaType = null;
+
+    // Detect ViewOnce payload structures in Baileys / Zokou
+    if (msgRepondu.viewOnceMessage || msgRepondu.viewOnceMessageV2 || msgRepondu.viewOnceMessageV2Extension) {
+      const innerMsg = msgRepondu.viewOnceMessage?.message || 
+                       msgRepondu.viewOnceMessageV2?.message || 
+                       msgRepondu.viewOnceMessageV2Extension?.message;
+
+      if (innerMsg?.imageMessage) {
+        viewOnceMsg = innerMsg.imageMessage;
+        mediaType = "image";
+      } else if (innerMsg?.videoMessage) {
+        viewOnceMsg = innerMsg.videoMessage;
+        mediaType = "video";
+      }
+    } else if (msgRepondu.imageMessage?.viewOnce) {
+      viewOnceMsg = msgRepondu.imageMessage;
+      mediaType = "image";
+    } else if (msgRepondu.videoMessage?.viewOnce) {
+      viewOnceMsg = msgRepondu.videoMessage;
+      mediaType = "video";
+    }
+
+    if (!viewOnceMsg) {
+      return repondre("❌ *The replied message is not a View Once media.*");
+    }
+
+    // Download the media stream
+    const stream = await downloadContentFromMessage(viewOnceMsg, mediaType);
+    let buffer = Buffer.alloc(0);
+
+    for await (const chunk of stream) {
+      buffer = Buffer.concat([buffer, chunk]);
+    }
+
+    const captionText = viewOnceMsg.caption || "ViewOnce Unlocked";
+
+    // Send media to current chat
+    if (mediaType === "image") {
+      await zk.sendMessage(dest, { image: buffer, caption: `🔓 *View Once Unlocked*\n\n📝 *Caption:* ${captionText}` }, { quoted: ms });
+    } else if (mediaType === "video") {
+      await zk.sendMessage(dest, { video: buffer, caption: `🔓 *View Once Unlocked*\n\n📝 *Caption:* ${captionText}` }, { quoted: ms });
+    }
 
   } catch (error) {
     console.error("Error in VV command:", error);
-    repondre('An error occurred while processing the media.');
+    repondre("❌ *Failed to retrieve View Once media.*");
   }
 });
 
-/**
- * VV2 Command - Sends recovered media privately to your DM.
- */
-zokou({ nomCom: "vv2", categorie: "General" }, async (dest, zk, commandeOptions) => {
-  const { repondre, msgRepondu, ms } = commandeOptions;
-
-  if (!msgRepondu) {
-    return repondre('Reply to the message you want to receive in your DM.');
-  }
-
-  // Define Owner DM (Your number)
-  const myDm = zk.user.id.split(':')[0] + '@s.whatsapp.net';
+// Command: .vv2 (Sends unlocked media privately to your DM/Inbox)
+zokou({
+  nomCom: "open2",
+  categorie: "General",
+  reaction: "📥"
+}, async (dest, zk, commandeOptions) => {
+  const { ms, repondre, msgRepondu, auteurMessage } = commandeOptions;
 
   try {
-    let msg = {};
-    const infoText = `*🔓 TIMNASA VV-RECOVERY (DM)*\n\n_Media recovered privately._`;
-
-    if (msgRepondu.imageMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.imageMessage);
-      msg = { image: { url: media }, caption: msgRepondu.imageMessage.caption || infoText };
-    } else if (msgRepondu.videoMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.videoMessage);
-      msg = { video: { url: media }, caption: msgRepondu.videoMessage.caption || infoText };
-    } else if (msgRepondu.audioMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.audioMessage);
-      msg = { audio: { url: media }, mimetype: 'audio/mp4' };
-    } else if (msgRepondu.stickerMessage) {
-      const media = await zk.downloadAndSaveMediaMessage(msgRepondu.stickerMessage);
-      const stickerMess = new Sticker(media, {
-        pack: '𝚃𝙸𝙼𝙽𝙰𝚂𝙰 𝚃𝙼𝙳',
-        author: 'Timoth',
-        type: StickerTypes.FULL
-      });
-      msg = { sticker: await stickerMess.toBuffer() };
-    } else {
-      msg = { text: msgRepondu.conversation || "No text content found." };
+    if (!msgRepondu) {
+      return repondre("⚠️ *Please reply to a View Once message (Image or Video).*");
     }
 
-    // Send the recovered message to your Private DM
-    await zk.sendMessage(myDm, msg);
-    
-    // Notify in the current chat that it was sent
-    await zk.sendMessage(dest, { text: "✅ Media has been sent to your DM." }, { quoted: ms });
+    let viewOnceMsg = null;
+    let mediaType = null;
+
+    if (msgRepondu.viewOnceMessage || msgRepondu.viewOnceMessageV2 || msgRepondu.viewOnceMessageV2Extension) {
+      const innerMsg = msgRepondu.viewOnceMessage?.message || 
+                       msgRepondu.viewOnceMessageV2?.message || 
+                       msgRepondu.viewOnceMessageV2Extension?.message;
+
+      if (innerMsg?.imageMessage) {
+        viewOnceMsg = innerMsg.imageMessage;
+        mediaType = "image";
+      } else if (innerMsg?.videoMessage) {
+        viewOnceMsg = innerMsg.videoMessage;
+        mediaType = "video";
+      }
+    } else if (msgRepondu.imageMessage?.viewOnce) {
+      viewOnceMsg = msgRepondu.imageMessage;
+      mediaType = "image";
+    } else if (msgRepondu.videoMessage?.viewOnce) {
+      viewOnceMsg = msgRepondu.videoMessage;
+      mediaType = "video";
+    }
+
+    if (!viewOnceMsg) {
+      return repondre("❌ *The replied message is not a View Once media.*");
+    }
+
+    const stream = await downloadContentFromMessage(viewOnceMsg, mediaType);
+    let buffer = Buffer.alloc(0);
+
+    for await (const chunk of stream) {
+      buffer = Buffer.concat([buffer, chunk]);
+    }
+
+    const captionText = viewOnceMsg.caption || "ViewOnce Private";
+
+    // Send directly to sender's private DM
+    if (mediaType === "image") {
+      await zk.sendMessage(auteurMessage, { image: buffer, caption: `🔒 *View Once (Private)*\n\n📝 *Caption:* ${captionText}` });
+    } else if (mediaType === "video") {
+      await zk.sendMessage(auteurMessage, { video: buffer, caption: `🔒 *View Once (Private)*\n\n📝 *Caption:* ${captionText}` });
+    }
+
+    repondre("📥 *Media has been sent directly to your inbox!*");
 
   } catch (error) {
     console.error("Error in VV2 command:", error);
-    repondre('Error: Failed to send the media to your DM.');
+    repondre("❌ *Failed to send media to your inbox.*");
   }
 });
