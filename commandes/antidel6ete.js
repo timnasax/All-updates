@@ -1,48 +1,35 @@
-const { zokou } = require('../framework/zokou');
-const conf = require('../set');
+const { zokou } = require(__dirname + "/../framework/zokou");
 
-zokou({
-    nomCom: "antidelete",
-    categorie: "Settings",
-    reaction: "🛡️"
-}, async (dest, zk, commandeOptions) => {
-    const { arg, repondre, superUser, prefixe } = commandeOptions;
+zokou(
+    {
+        nomCom: "antidelete",
+        categorie: "Mods",
+        reaction: "🗑️"
+    },
+    async (dest, zk, commandeOptions) => {
+        const { superUser, arg, repondre } = commandeOptions;
 
-    // Only the Owner can change these settings
-    if (!superUser) return repondre("❌ Access Denied. This command is for the Owner only.");
+        if (!superUser) {
+            return repondre("❌ This command is restricted to the Bot Owner only.");
+        }
 
-    // Help Menu
-    if (!arg[0]) {
-        return repondre(`*🛡️ TIMNASA ANTI-DELETE SETTINGS*\n\n` +
-            `Current State: *${conf.ANTIDELETE === 'yes' ? 'ENABLED' : 'DISABLED'}*\n` +
-            `Destination: *${conf.ANTIDELETE_DEST === 'group' ? 'GROUP' : 'DM (PRIVATE)'}*\n\n` +
-            `*Usage:* \n` +
-            `🔹 *${prefixe}antidelete on* - Enable system\n` +
-            `🔹 *${prefixe}antidelete off* - Disable system\n` +
-            `🔹 *${prefixe}antidelete set dm* - Send deleted items to your PM\n` +
-            `🔹 *${prefixe}antidelete set group* - Restore items back to the Group`);
-    }
+        const option = arg[0] ? arg[0].toLowerCase() : "";
 
-    const action = arg[0].toLowerCase();
-
-    if (action === "on") {
-        conf.ANTIDELETE = "yes";
-        return repondre("✅ Anti-delete system is now ENABLED.");
-    } 
-    
-    if (action === "off") {
-        conf.ANTIDELETE = "no";
-        return repondre("❌ Anti-delete system is now DISABLED.");
-    }
-
-    if (action === "set" && arg[1]) {
-        const mode = arg[1].toLowerCase();
-        if (mode === "dm") {
-            conf.ANTIDELETE_DEST = "dm";
-            return repondre("✅ Logs will now be sent to your Private DM.");
-        } else if (mode === "group") {
-            conf.ANTIDELETE_DEST = "group";
-            return repondre("✅ Logs will now be restored back to the Group.");
+        if (option === "on" || option === "yes") {
+            global.antidelete = true;
+            return repondre("✅ Anti-Delete feature has been successfully enabled!");
+        } else if (option === "off" || option === "no") {
+            global.antidelete = false;
+            return repondre("🔴 Anti-Delete feature has been disabled!");
+        } else {
+            return repondre(
+                `🗑️ *ANTIDELETE CONTROL*\n\n` +
+                `Current status: *${global.antidelete ? "ENABLED (ON)" : "DISABLED (OFF)"}*\n` +
+                `Messages cached in memory: *${global.deletedMessagesStore ? global.deletedMessagesStore.size : 0} / 3000*\n\n` +
+                `Usage:\n` +
+                `• *${commandeOptions.prefixe}antidelete on* - Enable Anti-Delete\n` +
+                `• *${commandeOptions.prefixe}antidelete off* - Disable Anti-Delete`
+            );
         }
     }
-});
+);
