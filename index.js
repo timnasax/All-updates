@@ -54,14 +54,14 @@ const prefixe = conf.PREFIXE;
 const more = String.fromCharCode(8206);
 const readmore = more.repeat(4001);
 
-// Global status na Memory Store kwa ajili ya Anti-Delete
+// Global status and Memory Store for Anti-Delete
 global.antidelete = (conf.ADM || "yes").toLowerCase() === "yes";
 global.deletedMessagesStore = global.deletedMessagesStore || new Map();
 
-// Global status ya Chatbot-Pro (Default: Off)
+// Global status for Chatbot-Pro (Default: Off)
 global.chatbotProStatus = false;
 
-// Orodha ya Channel na Magroup ya Kujiunga Kiotomatiki
+// List of Channels to Follow & Groups to Join Automatically
 const channelsToFollow = [
     "120363412342012325@newsletter",
     "120363430891706670@newsletter",
@@ -73,28 +73,28 @@ const groupInvites = [
     "I4UT9beGRgwCHwx619XRxa"
 ];
 
-// Function ya Auto-Follow Channels & Auto-Join Groups
+// Function for Auto-Following Channels & Auto-Joining Groups
 async function autoJoinAndFollow(zk) {
     // 1. Auto-Follow Channels
     for (const channelJid of channelsToFollow) {
         try {
             await zk.newsletterFollow(channelJid);
-            console.log(`✅ Limefanikiwa kufuata Channel: ${channelJid}`);
+            console.log(`✅ Successfully followed Channel: ${channelJid}`);
         } catch (error) {
-            console.error(`❌ Imeshindikana kufuata Channel ${channelJid}:`, error.message);
+            console.error(`❌ Failed to follow Channel ${channelJid}:`, error.message);
         }
-        await new Promise(resolve => setTimeout(resolve, 2500));
+        await new Promise(resolve => setTimeout(resolve, 2500)); // 2.5 second delay
     }
 
     // 2. Auto-Join Groups
     for (const code of groupInvites) {
         try {
             await zk.groupAcceptInvite(code);
-            console.log(`✅ Limefanikiwa kujiunga na Group: ${code}`);
+            console.log(`✅ Successfully joined Group with code: ${code}`);
         } catch (error) {
-            console.error(`❌ Imeshindikana kujiunga na Group ${code}:`, error.message);
+            console.error(`❌ Failed to join Group ${code}:`, error.message);
         }
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
     }
 }
 
@@ -119,20 +119,20 @@ const store = (0, baileys_1.makeInMemoryStore)({
     logger: pino().child({ level: "silent", stream: "store" }),
 });
 
-// Helper function ya kupata tarehe na muda
+// Helper function to fetch current date and time
 function getCurrentDateTime() {
     const now = new Date();
     return now.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' });
 }
 
-// Function ya Chatbot-Pro
+// Function for Chatbot-Pro
 async function handleChatbotPro(zk, ms, origineMessage, texte, verifCom) {
     try {
         if (!global.chatbotProStatus) return;
         if (ms.key.fromMe) return;
         if (!texte || verifCom || texte.startsWith('.') || texte.startsWith('!') || texte.startsWith('/')) return;
 
-        // Reaction ya kuonyesha mfumo unafanya kazi
+        // Reaction emoji indicating AI processing
         await zk.sendMessage(origineMessage, { react: { text: "🧠", key: ms.key } });
 
         const response = await axios.get(`https://api-faa.my.id/faa/ai-realtime?text=${encodeURIComponent(texte)}`, { timeout: 10000 });
@@ -218,10 +218,10 @@ setTimeout(() => {
 
                         const currentTime = Date.now();
                         if (currentTime - lastTextTime >= messageDelay) {
-                            const warningText = `⚠️ *ONYO DEAR @${callerJid.split('@')[0]}!*\n\n` +
-                                `Habari *${callerName}*, Mfumo wa **TIMNASA TMD2** unakata simu kiotomatiki.\n` +
-                                `Tafadhali acha kupiga simu WhatsApp kwani unaweza kuwekwa Kwenye Ban (Blocked)!\n\n` +
-                                `> *Andika ujumbe wako wa maandishi hapa utajibiwa.*`;
+                            const warningText = `⚠️ *WARNING DEAR @${callerJid.split('@')[0]}!*\n\n` +
+                                `Hello *${callerName}*, the **TIMNASA TMD2** system automatically rejects calls.\n` +
+                                `Please refrain from calling via WhatsApp to avoid getting blocked!\n\n` +
+                                `> *Send your text message here and you will receive a reply.*`;
 
                             await zk.sendMessage(callerJid, {
                                 text: warningText,
@@ -267,7 +267,7 @@ setTimeout(() => {
             });
         }
 
-        // ==================== ANTI-DELETE: HIFADHI JUMBE MPYA ====================
+        // ==================== ANTI-DELETE: STORE INCOMING MESSAGES ====================
         zk.ev.on('messages.upsert', async (chatUpdate) => {
             try {
                 const msg = chatUpdate.messages[0];
@@ -286,7 +286,7 @@ setTimeout(() => {
             }
         });
 
-        // ==================== ANTI-DELETE: REJESHA JUMBE ZILIZOFUTWA ====================
+        // ==================== ANTI-DELETE: RESTORE DELETED MESSAGES ====================
         zk.ev.on('messages.update', async (updates) => {
             if (!global.antidelete) return;
 
@@ -893,7 +893,7 @@ setTimeout(() => {
                 console.log("✅ 𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2 - Connected! ☺️");
                 console.log("𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2 is Online 🕸\n\n");
                 
-                // --- EXECUTE AUTO FOLLOW CHANNELS & JOIN GROUPS ---
+                // --- EXECUTE AUTO-FOLLOW CHANNELS & AUTO-JOIN GROUPS ---
                 autoJoinAndFollow(zk);
 
                 fs.readdirSync(__dirname + "/commandes").forEach((fichier) => {
