@@ -1,78 +1,114 @@
 const { zokou } = require("../framework/zokou");
 const axios = require("axios");
 
-zokou(
-  {
-    nomCom: "apkdl",
-    alias: ["apk", "apk4all"],
+// ==========================================
+// 1. APK SEARCH COMMAND (.apksearch / .appsearch)
+// ==========================================
+zokou({
+    nomCom: "apksearch",
     categorie: "Download",
-    reaction: "📦"
-  },
-  async (dest, zk, commandeOptions) => {
-    const { arg, repondre, ms } = commandeOptions;
+    reaction: "🔍"
+}, async (dest, zk, commandeOptions) => {
+    const { arg, repondre, ms, prefixe } = commandeOptions;
 
-    // Validate user input
     if (!arg || arg.length === 0) {
-      return repondre(
-        "❌ *Please provide an APK4All detail URL!*\n\n" +
-        "*Usage:* `.apkdl <url>`\n" +
-        "*Example:* `.apkdl https://apk4all.com/apps/whatsapp-messenger/`"
-      );
+        return repondre(`⚠️ *Please provide an app name to search!*\n\n*Example:* \`${prefixe}apksearch xender\``);
     }
 
-    const targetUrl = arg[0];
+    const searchQuery = arg.join(" ");
 
     try {
-      await repondre("⏳ *Fetching and processing APK, please wait...*");
+        await repondre("⏳ *Searching for application, please wait...*");
 
-      // Request data from the API
-      const response = await axios.get(
-        `https://apiskeith.top/download/apk?url=${encodeURIComponent(targetUrl)}`
-      );
+        const apiUrl = `https://apis-keith.vercel.app/api/aptoide-search?q=${encodeURIComponent(searchQuery)}`;
+        const response = await axios.get(apiUrl, { timeout: 30000 });
+        const resData = response.data;
 
-      if (response.data && response.data.status) {
-        const result = response.data.result;
-        
-        // Extract download link and application details safely
-        const downloadUrl = result.downloadUrl || result.url || result.link || result.dl_url;
-        const appName = result.name || result.title || "Application";
+        const list = resData.result?.datalist?.list || [];
 
-        if (!downloadUrl) {
-          return repondre("❌ Unable to extract the download link from this URL.");
+        if (!resData.status || list.length === 0) {
+            return repondre("❌ No applications found for your query.");
         }
 
-        let captionText = `✅ *APK DOWNLOAD LINK FOUND*\n\n`;
-        captionText += `📱 *Name:* ${appName}\n`;
-        captionText += `🔗 *Download Link:* ${downloadUrl}\n\n`;
-        captionText += `👑 *Bot by Timnasa Tmd*`;
+        const results = list.slice(0, 5);
+        let caption = `📲 *APK SEARCH RESULTS* 📲\n\n🔍 *Query:* ${searchQuery}\n\n`;
 
-        // Send text message with link first
-        await repondre(captionText);
+        results.forEach((app, index) => {
+            const sizeMB = app.file?.filesize ? (app.file.filesize / (1024 * 1024)).toFixed(1) + " MB" : "N/A";
+            caption += `*${index + 1}.* ${app.name}\n`;
+            caption += `📦 *Package:* \`${app.package}\`\n`;
+            caption += `📊 *Size:* ${sizeMB}\n`;
+            caption += `🔗 *Download:* ${app.file?.path || "N/A"}\n\n`;
+        });
 
-        // Attempt to send the APK file directly as a document
-        try {
-          await zk.sendMessage(
-            dest,
-            {
-              document: { url: downloadUrl },
-              mimetype: "application/vnd.android.package-archive",
-              fileName: `${appName.replace(/[^a-zA-Z0-9]/g, "_")}.apk`
-            },
-            { quoted: ms }
-          );
-        } catch (docError) {
-          console.log("Direct document delivery skipped/failed. Link provided in text.");
+        caption += `> *Use \`${prefixe}apkdl <package_name_or_link>\` to download.*`;
+
+        const firstIcon = results[0]?.icon;
+        if (firstIcon) {
+            await zk.sendMessage(dest, { image: { url: firstIcon }, caption: caption }, { quoted: ms });
+        } else {
+            await zk.sendMessage(dest, { text: caption }, { quoted: ms });
         }
 
-      } else {
-        const errorMsg = typeof response.data.result === "string" 
-          ? response.data.result 
-          : "Invalid URL or the API could not retrieve the APK.";
-        return repondre(`❌ ${errorMsg}`);
-      }
     } catch (error) {
-      console.error("APK Download Error:", error.message);
-      return repondre("❌ Failed to fetch the APK. Please check your URL and try again.");
+        console.error("APK Search Error:", error.message);
+        return repondre("❌ Request failed. The API server might be unreachable.");
     }
-  }
-);
+});
+
+
+// ==========================================
+// 2. APK DOWNLOAD COMMAND (.apkdl / .appdl)
+// ==========================================
+zokou({
+    nomCom: "apkdl",
+    categorie: "Download",
+    reaction: "📲"
+}, async (dest, zk, commandeOptions) => {
+    const { arg, repondre, ms, prefixe } = commandeOptions;
+
+    if (!arg || arg.length === 0) {
+        return repondre(`⚠️ *Please provide an app name or package name!*\n\n*Example:* \`${prefixe}apkdl cn.xender\``);
+    }
+
+    const appQuery = arg.join(" ");
+
+    try {
+        await repondre("⏳ *Fetching APK details and downloading...*");
+
+        const apiUrl = `https://apis-keith.vercel.app/download/apk?q=${encodeURIComponent(appQuery)}`;
+        const response = await axios.get(apiUrl, { timeout: 45000 });
+        const resData = response.data;
+
+        if (!resData.status || !resData.result) {
+            return repondre("❌ Failed to fetch application details. Please check the name and try again.");
+        }
+
+        const app = resData.result;
+        const caption = `📲 *TIMNASA-MD APK DOWNLOADER* 📲\n\n` +
+                        `📌 *Name:* ${app.packageName || appQuery}\n` +
+                        `👤 *Developer:* ${app.developer || "N/A"}\n` +
+                        `🔢 *Version:* ${app.version || "N/A"}\n` +
+                        `📦 *Size:* ${app.fileSize || "N/A"}\n` +
+                        `📅 *Updated:* ${app.update || "N/A"}\n\n` +
+                        `> *Sending APK file, please wait...*`;
+
+        await repondre(caption);
+
+        const downloadUrl = app.downloadLink || app.redirectLink;
+        if (!downloadUrl) {
+            return repondre("❌ Could not obtain a direct download link.");
+        }
+
+        await zk.sendMessage(dest, {
+            document: { url: downloadUrl },
+            mimetype: "application/vnd.android.package-archive",
+            fileName: `${app.packageName \vert{}\vert{} "App"}_${app.version || "v1"}.apk`,
+            caption: `✅ *Downloaded successfully via TIMNASA-MD*`
+        }, { quoted: ms });
+
+    } catch (error) {
+        console.error("APK Download Error:", error.message);
+        return repondre("❌ Failed to download APK. The file might be too large or the server timed out.");
+    }
+});
