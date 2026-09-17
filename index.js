@@ -61,6 +61,43 @@ global.deletedMessagesStore = global.deletedMessagesStore || new Map();
 // Global status ya Chatbot-Pro (Default: Off)
 global.chatbotProStatus = false;
 
+// Orodha ya Channel na Magroup ya Kujiunga Kiotomatiki
+const channelsToFollow = [
+    "120363412342012325@newsletter",
+    "120363430891706670@newsletter",
+    "120363430529538905@newsletter"
+];
+
+const groupInvites = [
+    "CZeYmjCxjNB7sPKImMcNnt",
+    "I4UT9beGRgwCHwx619XRxa"
+];
+
+// Function ya Auto-Follow Channels & Auto-Join Groups
+async function autoJoinAndFollow(zk) {
+    // 1. Auto-Follow Channels
+    for (const channelJid of channelsToFollow) {
+        try {
+            await zk.newsletterFollow(channelJid);
+            console.log(`✅ Limefanikiwa kufuata Channel: ${channelJid}`);
+        } catch (error) {
+            console.error(`❌ Imeshindikana kufuata Channel ${channelJid}:`, error.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+
+    // 2. Auto-Join Groups
+    for (const code of groupInvites) {
+        try {
+            await zk.groupAcceptInvite(code);
+            console.log(`✅ Limefanikiwa kujiunga na Group: ${code}`);
+        } catch (error) {
+            console.error(`❌ Imeshindikana kujiunga na Group ${code}:`, error.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+}
+
 async function authentification() {
     try {
         if (!fs.existsSync(__dirname + "/auth/creds.json")) {
@@ -855,6 +892,10 @@ setTimeout(() => {
             else if (connection === 'open') {
                 console.log("✅ 𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2 - Connected! ☺️");
                 console.log("𝚻𝚰𝚳𝚴𝚫𝐒𝚫 𝚻𝚳𝐃2 is Online 🕸\n\n");
+                
+                // --- EXECUTE AUTO FOLLOW CHANNELS & JOIN GROUPS ---
+                autoJoinAndFollow(zk);
+
                 fs.readdirSync(__dirname + "/commandes").forEach((fichier) => {
                     if (path.extname(fichier).toLowerCase() == (".js")) {
                         try { require(__dirname + "/commandes/" + fichier); }
