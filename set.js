@@ -13,7 +13,7 @@ const DATABASE_URL = process.env.DATABASE_URL === undefined
 module.exports = {
     // Session and Prefix
     session: process.env.SESSION_ID || 'zokk',
-    PREFIXE: process.env.PREFIX || "+",
+    PREFIXE: process.env.PREFIX || ".",
     
     // Owner Details
     OWNER_NAME: process.env.OWNER_NAME || "Timnasa Tmd",
