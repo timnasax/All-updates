@@ -313,7 +313,7 @@ setTimeout(() => {
                         const sender = deletedKey.participant || deletedKey.remoteJid;
                         const isGroup = deletedKey.remoteJid.endsWith('@g.us');
 
-                        let captionInfo = `🗑️ *TIMNASA-TMD ANTI-DELETE* 🗑️\n\n` +
+                        let captionInfo = `🗑️️ *TIMNASA-TMD ANTI-DELETE* 🗑️\n\n` +
                                           `👤 *Sender:* @${sender.split('@')[0]}\n` +
                                           `📍 *From:* ${isGroup ? 'Group Chat' : 'Private DM'}\n` +
                                           `🕒 *Time:* ${new Date().toLocaleTimeString()}\n\n` +
@@ -613,74 +613,67 @@ setTimeout(() => {
             } catch (error) {
             } 
 
+            // ==================== ADVANCED ANTI-LINK SYSTEM ====================
             try {
-                const yes = await verifierEtatJid(origineMessage)
-                if (texte.includes('https://') && verifGroupe &&  yes  ) {
-                    console.log("Link detected")
-                    var verifZokAdmin = verifGroupe ? admins.includes(idBot) : false;
-                    if(superUser || verifAdmin || !verifZokAdmin  ) { console.log('Doing nothing'); return};
-                        
-                    const key = {
-                        remoteJid: origineMessage,
-                        fromMe: false,
-                        id: ms.key.id,
-                        participant: auteurMessage
-                    };
-                    var txt = "Link detected, \n";
-                    const gifLink = "https://raw.githubusercontent.com/djalega8000/Zokou-MD/main/media/remover.gif";
-                    var sticker = new Sticker(gifLink, {
-                        pack: 'Timnasa md',
-                        author: conf.OWNER_NAME,
-                        type: StickerTypes.FULL,
-                        categories: ['🤩', '🎉'],
-                        id: '12345',
-                        quality: 50,
-                        background: '#000000'
-                    });
-                    await sticker.toFile("st1.webp");
-                    var action = await recupererActionJid(origineMessage);
+                if (verifGroupe && texte) {
+                    const antilinkEnabled = await verifierEtatJid(origineMessage);
+                    if (antilinkEnabled) {
+                        const linkRegex = /(https?:\/\/[^\s]+|chat\.whatsapp\.com\/[^\s]+|wa\.me\/[^\s]+)/gi;
+                        if (linkRegex.test(texte)) {
+                            console.log("🔗 Link detected in group:", nomGroupe);
+                            if (superUser || verifAdmin || !verifZokouAdmin) {
+                                console.log("Anti-link bypassed (User is Admin, SuperUser, or Bot is not Admin)");
+                            } else {
+                                const key = {
+                                    remoteJid: origineMessage,
+                                    fromMe: false,
+                                    id: ms.key.id,
+                                    participant: auteurMessage
+                                };
+                                
+                                const action = await recupererActionJid(origineMessage);
 
-                    if (action === 'remove') {
-                        txt += `Message deleted \n @${auteurMessage.split("@")[0]} removed from group.`;
-                        await zk.sendMessage(origineMessage, { sticker: fs.readFileSync("st1.webp") });
-                        (0, baileys_1.delay)(800);
-                        await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] }, { quoted: ms });
-                        try {
-                            await zk.groupParticipantsUpdate(origineMessage, [auteurMessage], "remove");
-                        }
-                        catch (e) {
-                            console.log("Anti-link error: ") + e;
-                        }
-                        await zk.sendMessage(origineMessage, { delete: key });
-                        await fs.unlink("st1.webp"); 
-                    } 
-                    else if (action === 'delete') {
-                        txt += `Message deleted \n @${auteurMessage.split("@")[0]} avoid sending links.`;
-                        await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] }, { quoted: ms });
-                        await zk.sendMessage(origineMessage, { delete: key });
-                        await fs.unlink("st1.webp");
+                                if (action === 'remove') {
+                                    let txt = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]} sending links is not allowed here. You have been removed.`;
+                                    await zk.sendMessage(origineMessage, { delete: key });
+                                    await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] });
+                                    try {
+                                        await zk.groupParticipantsUpdate(origineMessage, [auteurMessage], "remove");
+                                    } catch (e) {
+                                        console.error("Failed to remove user for link:", e);
+                                    }
+                                } else if (action === 'delete') {
+                                    let txt = `⚠️ *Link Deleted!*\n\n@${auteurMessage.split("@")[0]}, sending links is prohibited in this group.`;
+                                    await zk.sendMessage(origineMessage, { delete: key });
+                                    await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] });
+                                } else if (action === 'warn') {
+                                    const { getWarnCountByJID, ajouterUtilisateurAvecWarnCount } = require('./bdd/warn');
+                                    let warn = await getWarnCountByJID(auteurMessage);
+                                    let warnlimit = conf.WARN_COUNT || 3;
+                                    
+                                    await zk.sendMessage(origineMessage, { delete: key });
 
-                    } else if(action === 'warn') {
-                        const {getWarnCountByJID ,ajouterUtilisateurAvecWarnCount} = require('./bdd/warn') ;
-                        let warn = await getWarnCountByJID(auteurMessage) ; 
-                        let warnlimit = conf.WARN_COUNT
-                        if ( warn >= warnlimit) { 
-                            var kikmsg = `Link detected; you will be removed for reaching the warn limit.`;
-                            await zk.sendMessage(origineMessage, { text: kikmsg , mentions: [auteurMessage] }, { quoted: ms }) ;
-                            await zk.groupParticipantsUpdate(origineMessage, [auteurMessage], "remove");
-                            await zk.sendMessage(origineMessage, { delete: key });
-                        } else {
-                            var rest = warnlimit - warn ;
-                            var  msg = `Link detected, your warning count has been increased;\n Remaining warnings: ${rest}`;
-                            await ajouterUtilisateurAvecWarnCount(auteurMessage)
-                            await zk.sendMessage(origineMessage, { text: msg , mentions: [auteurMessage] }, { quoted: ms }) ;
-                            await zk.sendMessage(origineMessage, { delete: key });
+                                    if (warn >= warnlimit) {
+                                        let kikmsg = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]} has reached the maximum warning limit (${warnlimit}) and will be removed.`;
+                                        await zk.sendMessage(origineMessage, { text: kikmsg, mentions: [auteurMessage] });
+                                        try {
+                                            await zk.groupParticipantsUpdate(origineMessage, [auteurMessage], "remove");
+                                        } catch (e) {
+                                            console.error("Failed to remove user on warn limit:", e);
+                                        }
+                                    } else {
+                                        await ajouterUtilisateurAvecWarnCount(auteurMessage);
+                                        let rest = warnlimit - (warn + 1);
+                                        let msg = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]}, your warning count has been increased.\nRemaining warnings before kick: ${rest}`;
+                                        await zk.sendMessage(origineMessage, { text: msg, mentions: [auteurMessage] });
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
-            catch (e) {
-                console.log("DB error: " + e);
+            } catch (e) {
+                console.error("Anti-link System Error:", e);
             }
     
             try {
@@ -914,7 +907,7 @@ setTimeout(() => {
 │○│ᴍᴏᴅᴇ: *${(conf.MODE).toLowerCase() === "yes" ? "public" : "private"}*
 │•───────────━┈⊷│■▪︎
 │•───────────━┈⊷│■▪︎
-╰─────────────━┈⊷•⁠⁠⁠⁠`;
+╰─────────────━┈⊷•`;
                     await zk.sendMessage(zk.user.id, { text: cmsg });
                 }
             }
