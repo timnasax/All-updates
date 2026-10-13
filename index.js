@@ -665,9 +665,10 @@ setTimeout(() => {
                                     if (fs.existsSync("st1.webp")) await fs.unlink("st1.webp");
 
                                 } else if (action === 'delete') {
-                                    let txt = `⚠️ *Link Deleted!*\n\n@${auteurMessage.split("@")[0]}, sending links is prohibited in this group.`;
+                                    let txt = `⚠️ *Link Deleted!*\n\n@${auteurMessage.split("@")[0]}, link haziluhusiwi hapa!`;
                                     await zk.sendMessage(origineMessage, { delete: key });
-                                    await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] });
+                                    await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] }, { quoted: ms });
+
                                 } else if (action === 'warn') {
                                     const { getWarnCountByJID, ajouterUtilisateurAvecWarnCount } = require('./bdd/warn');
                                     let warn = await getWarnCountByJID(auteurMessage);
@@ -676,18 +677,35 @@ setTimeout(() => {
                                     await zk.sendMessage(origineMessage, { delete: key });
 
                                     if (warn >= warnlimit) {
-                                        let kikmsg = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]} has reached the maximum warning limit (${warnlimit}) and will be removed.`;
-                                        await zk.sendMessage(origineMessage, { text: kikmsg, mentions: [auteurMessage] });
+                                        const gifLink = "https://raw.githubusercontent.com/djalega8000/Zokou-MD/main/media/remover.gif";
+                                        var sticker = new Sticker(gifLink, {
+                                            pack: 'Timnasa md',
+                                            author: conf.OWNER_NAME || 'Timnasa',
+                                            type: StickerTypes.FULL,
+                                            categories: ['🤩', '🎉'],
+                                            id: '12345',
+                                            quality: 50,
+                                            background: '#000000'
+                                        });
+                                        await sticker.toFile("st1.webp");
+
+                                        let kikmsg = `⚠️ *Warning Limit Reached!*\n\n@${auteurMessage.split("@")[0]} umefikisha kikomo cha maonyo (${warnlimit}) kwa kutuma link, umeondolewa kwenye group!`;
+                                        
+                                        await zk.sendMessage(origineMessage, { sticker: fs.readFileSync("st1.webp") });
+                                        (0, baileys_1.delay)(500);
+                                        await zk.sendMessage(origineMessage, { text: kikmsg, mentions: [auteurMessage] }, { quoted: ms });
+                                        
                                         try {
                                             await zk.groupParticipantsUpdate(origineMessage, [auteurMessage], "remove");
                                         } catch (e) {
                                             console.error("Failed to remove user on warn limit:", e);
                                         }
+                                        if (fs.existsSync("st1.webp")) await fs.unlink("st1.webp");
                                     } else {
                                         await ajouterUtilisateurAvecWarnCount(auteurMessage);
                                         let rest = warnlimit - (warn + 1);
-                                        let msg = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]}, your warning count has been increased.\nRemaining warnings before kick: ${rest}`;
-                                        await zk.sendMessage(origineMessage, { text: msg, mentions: [auteurMessage] });
+                                        let msg = `⚠️ *Link Warning!*\n\n@${auteurMessage.split("@")[0]}, link haziluhusiwi. Onyo lako limeongezeka.\nMaonyo yaliyobaki kabla ya kutolewa: ${rest}`;
+                                        await zk.sendMessage(origineMessage, { text: msg, mentions: [auteurMessage] }, { quoted: ms });
                                     }
                                 }
                             }
