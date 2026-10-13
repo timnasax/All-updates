@@ -125,7 +125,7 @@ function getCurrentDateTime() {
     return now.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' });
 }
 
-// Function for Chatbot-Pro
+// Function for Chatbot-Pro (Fixed to reply and respond properly)
 async function handleChatbotPro(zk, ms, origineMessage, texte, verifCom) {
     try {
         if (!global.chatbotProStatus) return;
@@ -133,14 +133,19 @@ async function handleChatbotPro(zk, ms, origineMessage, texte, verifCom) {
         if (!texte || verifCom || texte.startsWith('.') || texte.startsWith('!') || texte.startsWith('/')) return;
 
         // Reaction emoji indicating AI processing
-        await zk.sendMessage(origineMessage, { react: { text: "🧠", key: ms.key } });
+        await zk.sendMessage(origineMessage, { react: { text: "🧠", key: ms.key } }).catch(() => {});
 
-        const response = await axios.get(`https://api-faa.my.id/faa/ai-realtime?text=${encodeURIComponent(texte)}`, { timeout: 10000 });
+        const response = await axios.get("https://apis-keith.vercel.app/ai/gpt", {
+            params: { q: texte },
+            timeout: 10000,
+        });
         
         const aiMessage = response.data?.result || response.data?.response || response.data?.message;
 
         if (aiMessage) {
             await zk.sendMessage(origineMessage, { text: aiMessage }, { quoted: ms });
+        } else {
+            await zk.sendMessage(origineMessage, { text: "Samahani, sikuelewa vizuri. Tafadhali rudia tena." }, { quoted: ms });
         }
     } catch (error) {
         console.error("Chatbot-Pro Error:", error.message);
