@@ -618,10 +618,23 @@ setTimeout(() => {
             } catch (error) {
             } 
 
-            // ==================== ADVANCED ANTI-LINK SYSTEM ====================
+            // ==================== ADVANCED ANTI-LINK SYSTEM (GLOBAL & LOCAL) ====================
             try {
                 if (verifGroupe && texte) {
-                    const antilinkEnabled = await verifierEtatJid(origineMessage);
+                    let globalAntiLinkActive = false;
+                    let globalAction = 'delete';
+                    try {
+                        const globalDataPath = path.join(__dirname, 'data/antilinkAll.json');
+                        if (fs.existsSync(globalDataPath)) {
+                            const gData = JSON.parse(fs.readFileSync(globalDataPath, 'utf8'));
+                            globalAntiLinkActive = gData.status;
+                            globalAction = gData.action || 'delete';
+                        }
+                    } catch (e) {}
+
+                    const localAntiLink = await verifierEtatJid(origineMessage);
+                    const antilinkEnabled = globalAntiLinkActive || localAntiLink;
+
                     if (antilinkEnabled) {
                         const linkRegex = /(https?:\/\/[^\s]+|chat\.whatsapp\.com\/[^\s]+|wa\.me\/[^\s]+)/gi;
                         if (linkRegex.test(texte)) {
@@ -636,7 +649,8 @@ setTimeout(() => {
                                     participant: auteurMessage
                                 };
                                 
-                                const action = await recupererActionJid(origineMessage);
+                                let action = globalAntiLinkActive ? globalAction : await recupererActionJid(origineMessage);
+                                if (!action) action = 'delete';
 
                                 if (action === 'remove') {
                                     const gifLink = "https://raw.githubusercontent.com/djalega8000/Zokou-MD/main/media/remover.gif";
@@ -651,7 +665,7 @@ setTimeout(() => {
                                     });
                                     await sticker.toFile("st1.webp");
                                     
-                                    let txt = `⚠️ *Link Detected!*\n\n@${auteurMessage.split("@")[0]} sending links is not allowed here. You have been removed.`;
+                                    let txt = `⚠️ *Link detected by timnasa protection*\n\n@${auteurMessage.split("@")[0]} sending links is not allowed here. You have been removed.`;
                                     
                                     await zk.sendMessage(origineMessage, { sticker: fs.readFileSync("st1.webp") });
                                     (0, baileys_1.delay)(500);
@@ -665,7 +679,7 @@ setTimeout(() => {
                                     if (fs.existsSync("st1.webp")) await fs.unlink("st1.webp");
 
                                 } else if (action === 'delete') {
-                                    let txt = `⚠️ *Link Deleted!*\n\n@${auteurMessage.split("@")[0]}, link haziluhusiwi hapa!`;
+                                    let txt = `⚠️ *Link detected by timnasa protection*\n\n@${auteurMessage.split("@")[0]}, link haziluhusiwi hapa!`;
                                     await zk.sendMessage(origineMessage, { delete: key });
                                     await zk.sendMessage(origineMessage, { text: txt, mentions: [auteurMessage] }, { quoted: ms });
 
@@ -689,7 +703,7 @@ setTimeout(() => {
                                         });
                                         await sticker.toFile("st1.webp");
 
-                                        let kikmsg = `⚠️ *Warning Limit Reached!*\n\n@${auteurMessage.split("@")[0]} umefikisha kikomo cha maonyo (${warnlimit}) kwa kutuma link, umeondolewa kwenye group!`;
+                                        let kikmsg = `⚠️ *Link detected by timnasa protection*\n\n@${auteurMessage.split("@")[0]} umefikisha kikomo cha maonyo (${warnlimit}) kwa kutuma link, umeondolewa kwenye group!`;
                                         
                                         await zk.sendMessage(origineMessage, { sticker: fs.readFileSync("st1.webp") });
                                         (0, baileys_1.delay)(500);
@@ -704,7 +718,7 @@ setTimeout(() => {
                                     } else {
                                         await ajouterUtilisateurAvecWarnCount(auteurMessage);
                                         let rest = warnlimit - (warn + 1);
-                                        let msg = `⚠️ *Link Warning!*\n\n@${auteurMessage.split("@")[0]}, link haziluhusiwi. Onyo lako limeongezeka.\nMaonyo yaliyobaki kabla ya kutolewa: ${rest}`;
+                                        let msg = `⚠️ *Link detected by timnasa protection*\n\n@${auteurMessage.split("@")[0]}, link haziluhusiwi. Onyo lako limeongezeka.\nMaonyo yaliyobaki kabla ya kutolewa: ${rest}`;
                                         await zk.sendMessage(origineMessage, { text: msg, mentions: [auteurMessage] }, { quoted: ms });
                                     }
                                 }
